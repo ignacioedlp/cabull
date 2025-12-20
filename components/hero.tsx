@@ -6,7 +6,9 @@
  * 
  * Características:
  * - Imagen de fondo con overlay oscuro para mejorar la legibilidad del texto
- * - Texto centrado y destacado
+ * - Contenedor con bordes redondeados que enmarca el contenido
+ * - Texto centrado y destacado en color blanco
+ * - Dos botones de acción con estilos personalizados
  * - Diseño responsive que se adapta a diferentes tamaños de pantalla
  */
 
@@ -15,44 +17,33 @@ import { Button } from "./ui/button";
 
 export function Hero() {
   return (
-    <section 
-      className="relative w-full h-screen flex items-center justify-center overflow-hidden"
-      // Estilos inline para la imagen de fondo
-      style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1920&q=80')",
-        backgroundSize: "cover", // La imagen cubre todo el contenedor
-        backgroundPosition: "center", // La imagen está centrada
-        backgroundRepeat: "no-repeat", // No se repite la imagen
-      }}
-    >
-      {/* Overlay oscuro para mejorar la legibilidad del texto */}
-      {/* Este div crea una capa semitransparente sobre la imagen */}
-      <div className="absolute inset-0 bg-black/40 z-10" />
-      
-      {/* Contenedor del texto */}
-      {/* z-20 asegura que el texto esté por encima del overlay */}
-      <div className="relative z-20 text-center px-4 flex flex-col items-center justify-center gap-4">
-        {/* Texto principal de bienvenida */}
-        <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 drop-shadow-lg">
-        Refinando el estilo en La Plata
-        </h1>
-        
-        {/* Texto secundario opcional (puedes eliminarlo si no lo necesitas) */}
-        <p className="text-xl md:text-2xl text-white/90 drop-shadow-md">
-        Experimente el arte del cuidado personal en CABULL. Cortes elegantes, servicio sofisticado y un espacio diseñado para el caballero moderno.
-        </p>
-
-        <div className="flex items-center justify-center gap-4">
-          <Button>
-            <Link href="/#servicios">
-              Reservar un turno
-            </Link>
-          </Button>
-          <Button variant="outline">
-            <Link href="/#servicios">
-              Ver servicios
-            </Link>
-          </Button>
+    <section className="relative flex flex-col justify-center overflow-hidden bg-background-light dark:bg-background-dark pt-10 pb-10">
+      <div className="layout-container flex h-full grow flex-col">
+        <div className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center">
+          <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+            <div className="@container">
+              <div className="@[480px]:p-4">
+                <div className="flex min-h-[560px] flex-col gap-6 bg-cover bg-center bg-no-repeat @[480px]:gap-8 @[480px]:rounded-xl items-center justify-center p-8 relative overflow-hidden shadow-2xl" data-alt="Barber working on a client's hair in a dark, moody barbershop setting" style={{ backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.7) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJMGL1Ai9ayVFpwnoUj23AEwQBQgeFpklmK9IJrYPKYpJZfeS4RFpuxmRLFSsk9PLlMm9pOD2kFqaqdMMRaQyXMRMNG_-8aXIt6wqhfw2zKFpeocMurqH5pEYZcIK6o2mMmyCLYCeG_MAjq7hiWd1aP7W16ORpE0uk_OsE_tEyBez54BplGog2bnYJfYRRq_Glfvc8VqLsq-dZVSc5_17pMVMZibxhW8m1ENlidHtv8-moUGDcJLINwYHe_bNfthwsGL2EKki5eYtN")' }}>
+                  <div className="flex flex-col gap-4 text-center max-w-[700px] z-10">
+                    <h1 className="text-white text-5xl md:text-6xl font-black leading-tight tracking-tighter drop-shadow-lg">
+                      Refinando el estilo en La Plata
+                    </h1>
+                    <h2 className="text-gray-200 text-lg md:text-xl font-normal leading-relaxed max-w-[500px] mx-auto">
+                      Experiencia el arte de la barbería en CABULL. Cortes elegantes, servicio sofisticado y un espacio diseñado para el moderno caballero.
+                    </h2>
+                  </div>
+                  <div className="flex gap-4 z-10 pt-4">
+                    <Link href="/#reservar">
+                      <Button>Reservar un turno</Button>
+                    </Link>
+                    <Link href="/#servicios">
+                      <Button variant="secondary">Ver Servicios</Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
