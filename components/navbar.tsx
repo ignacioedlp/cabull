@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CalendarIcon, MenuIcon, Scissors, XIcon } from "lucide-react"
+import { MenuIcon, Scissors, XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 
@@ -129,7 +129,7 @@ export function Navbar({
                 <div className="pt-2">
                   <Link
                     href={buttonHref}
-                    onClick={(e) => {
+                    onClick={() => {
                       closeMobileMenu()
                       onButtonClick?.()
                     }}

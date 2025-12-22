@@ -1,4 +1,39 @@
 import { ScissorsIcon, Smile, StarIcon } from "lucide-react";
+import { Card, CardContent, CardHeader } from "./ui/card";
+
+const philosophy = [
+  {
+    title: "Barberos expertos",
+    description: "Profesionales cualificados con años de experiencia dedicados a perfeccionar tu look con precisión.",
+    icon: <ScissorsIcon />
+  },
+  {
+    title: "Productos de primera",
+    description: "Utilizamos solo productos de peluquería de primera calidad para garantizar la mejor salud para tu cabello y tu piel.",
+    icon: <StarIcon />
+  },
+  {
+    title: "Ambiente relajante",
+    description: "Un espacio moderno y sofisticado diseñado para tu comodidad. Siéntate, relájate y déjanos cuidar de ti.",
+    icon: <Smile />
+  }
+]
+
+const PhilosophyCard = ({ title, description, icon }: { title: string, description: string, icon: React.ReactNode }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="text-primary size-10 flex items-center justify-center bg-primary/10 rounded-full">{icon}</div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-2">
+          <h3 className=" text-lg font-bold">{title}</h3>
+          <p className="text-muted-foreground  text-sm leading-relaxed">{description}</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 function Philosophy() {
   return (
@@ -17,33 +52,9 @@ function Philosophy() {
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-4 rounded-xl border border-muted bg-background-light dark:bg-background-dark p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-primary size-10 flex items-center justify-center bg-primary/10 rounded-full">
-                    <ScissorsIcon />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <h3 className=" text-lg font-bold">Barberos expertos</h3>
-                    <p className="text-muted-foreground  text-sm leading-relaxed">Profesionales cualificados con años de experiencia dedicados a perfeccionar tu look con precisión.</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4 rounded-xl border border-muted bg-background-light dark:bg-background-dark p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-primary size-10 flex items-center justify-center bg-primary/10 rounded-full">
-                    <StarIcon />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <h3 className=" text-lg font-bold">Productos de primera</h3>
-                    <p className="text-muted-foreground  text-sm leading-relaxed">Utilizamos solo productos de peluquería de primera calidad para garantizar la mejor salud para tu cabello y tu piel.</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-4 rounded-xl border border-muted bg-background-light dark:bg-background-dark p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-primary size-10 flex items-center justify-center bg-primary/10 rounded-full">
-                    <Smile />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <h3 className=" text-lg font-bold">Ambiente relajante</h3>
-                    <p className="text-muted-foreground  text-sm leading-relaxed">Un espacio moderno y sofisticado diseñado para tu comodidad. Siéntate, relájate y déjanos cuidar de ti.</p>
-                  </div>
-                </div>
+                {philosophy.map((item) => (
+                  <PhilosophyCard key={item.title} title={item.title} description={item.description} icon={item.icon} />
+                ))}
               </div>
             </div>
           </div>

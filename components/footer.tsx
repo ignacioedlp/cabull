@@ -29,15 +29,15 @@ function Footer() {
                 <h3 className="text-primary font-bold text-sm uppercase tracking-wider">Contacto</h3>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPinIcon className="size-6 text-primary shrink-0" />
+                    <MapPinIcon className="size-3 text-primary shrink-0" />
                     <span>Calle 12 N° 1234<br />La Plata, Buenos Aires, Argentina</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <PhoneIcon className="size-6 text-primary shrink-0" />
+                    <PhoneIcon className="size-3 text-primary shrink-0" />
                     <span>+54 9 221 123-4567</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MailIcon className="size-6 text-primary shrink-0" />
+                    <MailIcon className="size-3 text-primary shrink-0" />
                     <span>info@cabull.com</span>
                   </div>
                 </div>

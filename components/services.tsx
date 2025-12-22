@@ -1,6 +1,7 @@
-import { CircleCheck, Link } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
 import React from 'react'
 import { Button } from './ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 
 // Define the type for service data
 interface Service {
@@ -48,12 +49,12 @@ interface ServiceCardProps {
 function ServiceCard({ service }: ServiceCardProps) {
   // Determine card styles based on whether it's popular
   const cardClasses = service.isPopular
-    ? 'flex flex-col gap-6 rounded-xl border-2 border-primary/20 bg-background p-6 relative overflow-hidden'
-    : 'flex flex-col gap-6 rounded-xl border border-muted bg-background p-6 hover:border-primary/50 transition-colors'
+    ? 'flex flex-col gap-6 border-2 border-primary/20 bg-background relative overflow-hidden'
+    : 'flex flex-col gap-6 border border-muted bg-background hover:border-primary/50 transition-colors'
 
 
   return (
-    <div className={cardClasses}>
+    <Card className={cardClasses}>
       {/* Popular badge - only shown if service is popular */}
       {service.isPopular && (
         <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg">
@@ -62,31 +63,30 @@ function ServiceCard({ service }: ServiceCardProps) {
       )}
 
       {/* Service header with title and price */}
-      <div>
-        <h3 className=" text-xl font-bold mb-2">
+      <CardHeader>
+        <CardTitle>
           {service.title}
-        </h3>
+        </CardTitle>
         <div className="flex items-baseline gap-1 text-primary">
           <span className="text-4xl font-black tracking-tighter">{formatPriceARS(service.price)}</span>
           <span className="text-sm font-bold text-muted-foreground">/ turno</span>
         </div>
-      </div>
+      </CardHeader>
 
       {/* Features list */}
-      <ul className="flex flex-col gap-3">
-        {service.features.map((feature, index) => (
-          <li key={index} className="flex items-center gap-3 text-sm text-muted-foreground">
-            <CircleCheck />
-            {feature}
-          </li>
-        ))}
-      </ul>
-
+      <CardContent>
+        <ul className="flex flex-col gap-3">
+          {service.features.map((feature, index) => (
+            <li key={index} className="flex items-center gap-3 text-sm text-muted-foreground">
+              <CircleCheck className="size-4" />
+              {feature}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
       {/* Call to action button */}
-      <Button>
-        Seleccionar Servicio
-      </Button>
-    </div>
+      <CardFooter className="border-none"> <Button className="w-full">Seleccionar Servicio</Button></CardFooter>
+    </Card>
   )
 }
 

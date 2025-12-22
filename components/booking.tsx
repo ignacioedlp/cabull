@@ -1,8 +1,16 @@
+"use client"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
-import { CalendarClockIcon, ChevronDownIcon, InfoIcon, ArrowRightIcon } from "lucide-react"
+import { CalendarClockIcon, InfoIcon, ArrowRightIcon } from "lucide-react"
+import DayPicker from "./day-picker"
+import dayjs from "dayjs"
+import { useState } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 
 function Booking() {
+  const [hour, setHour] = useState<string>('')
 
   const hours = [
     { hour: '10:00', available: true },
@@ -28,32 +36,31 @@ function Booking() {
               <div className="flex-1 bg-background p-6 md:p-8 rounded-xl border border-muted shadow-sm">
                 <form className="flex flex-col gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-foreground" htmlFor="service">Selecciona un Servicio</label>
-                    <div className="relative">
-                      <select className="w-full h-12 rounded-lg border-muted bg-background text-foreground focus:border-primary focus:ring-primary pl-4 pr-10 appearance-none cursor-pointer" id="service" name="service">
-                        <option disabled selected value="">Seleccionar un servicio...</option>
-                        <option value="classic-cut">Corte Clásico ($25.000)</option>
-                        <option value="beard-sculpt">Escultura de Barba ($15.000)</option>
-                        <option value="full-experience">Experiencia Completa ($45.000)</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <ChevronDownIcon className="size-6 text-muted-foreground" />
-                      </div>
-                    </div>
+                    <Label htmlFor="service">Selecciona un Servicio</Label>
+                    <Select>
+                      <SelectTrigger className="w-full " id="service" name="service">
+                        <SelectValue placeholder="Seleccionar un servicio..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="classic-cut">Corte Clásico ($25.000)</SelectItem>
+                        <SelectItem value="beard-sculpt">Escultura de Barba ($15.000)</SelectItem>
+                        <SelectItem value="full-experience">Experiencia Completa ($45.000)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-foreground" htmlFor="date">Selecciona una Fecha</label>
-                    <input className="w-full h-12 rounded-lg border-muted bg-background text-foreground focus:border-primary focus:ring-primary pl-4" id="date" min="2023-10-27" name="date" type="date" />
+                    <Label htmlFor="date">Selecciona una Fecha</Label>
+                    <DayPicker minDate={dayjs()} maxDate={dayjs().add(1, 'month')} disabledDaysOfWeek={[0, 6]} />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-bold text-foreground" htmlFor="email">Email</label>
-                    <input className="w-full h-12 rounded-lg border-muted bg-background text-foreground focus:border-primary focus:ring-primary pl-4 placeholder:text-muted-foreground" id="email" name="email" placeholder="you@example.com" type="email" />
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" placeholder="you@example.com" type="email" />
                   </div>
                   <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-3">
                     <CalendarClockIcon className="size-6 text-primary" />
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-primary uppercase tracking-wide">Horario Seleccionado</span>
-                      <span className="text-sm font-medium text-foreground">Selecciona un horario abajo</span>
+                      <span className="text-sm font-medium text-foreground">{hour || "Selecciona un horario abajo"}</span>
                     </div>
                   </div>
                   <Button type="submit">
@@ -68,10 +75,22 @@ function Booking() {
                   Horarios Disponibles (10:00 - 22:00)
                 </h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
-                  {hours.map((hour) => (
-                    <button key={hour.hour} className={cn("w-full h-12 rounded-lg border-muted border-2 text-foreground   transition-all text-center", hour.available ? "bg-background text-foreground hover:bg-primary/10" : "bg-muted text-muted-foreground ")}>
-                      {hour.hour}
-                    </button>
+                  {hours.map((hourItem) => (
+                    <Button
+                      key={hourItem.hour}
+                      className={cn(
+                        "w-full h-12 rounded-lg border-2 text-foreground transition-all text-center",
+                        hourItem.available
+                          ? hour === hourItem.hour
+                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                            : "bg-background text-foreground border-muted hover:bg-primary/10"
+                          : "bg-muted text-muted-foreground border-muted cursor-not-allowed"
+                      )}
+                      onClick={() => hourItem.available && setHour(hourItem.hour)}
+                      disabled={!hourItem.available}
+                    >
+                      <span className="text-lg font-medium">{hourItem.hour}</span>
+                    </Button>
                   ))}
                 </div>
                 <div className="mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200">

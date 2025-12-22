@@ -1,4 +1,5 @@
 import { QuoteIcon } from 'lucide-react'
+import { Card, CardContent, CardHeader } from './ui/card'
 
 // Define the type for testimonial data
 // This interface describes the structure of each testimonial object
@@ -44,37 +45,16 @@ interface TestimonialCardProps {
 
 function TestimonialCard({ testimonial }: TestimonialCardProps) {
   return (
-    <div className="bg-background p-8 rounded-xl border border-muted shadow-sm flex flex-col gap-4">
-      {/* Quote icon at the top */}
-      <div className="text-primary">
+    <Card>
+      <CardHeader>
         <QuoteIcon className="size-6" />
-      </div>
-
-      {/* Testimonial quote text */}
-      <p className="text-muted-foreground italic">
-        &quot;{testimonial.quote}&quot;
-      </p>
-
-      {/* Author information at the bottom */}
-      <div className="mt-auto pt-4 flex items-center gap-3">
-        {/* Author profile picture */}
-        <div
-          className="w-10 h-10 rounded-full bg-cover"
-          data-alt={testimonial.authorImageAlt}
-          style={{ backgroundImage: `url("${testimonial.authorImage}")` }}
-        />
-        <div>
-          {/* Author name */}
-          <div className="text-sm font-bold text-foreground">
-            {testimonial.authorName}
-          </div>
-          {/* Author role */}
-          <div className="text-xs text-primary font-medium">
-            {testimonial.authorRole}
-          </div>
-        </div>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground italic">
+          &quot;{testimonial.quote}&quot;
+        </p>
+      </CardContent>
+    </Card>
   )
 }
 

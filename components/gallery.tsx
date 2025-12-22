@@ -123,6 +123,7 @@ function Gallery() {
 
           {/* Imagen ampliada */}
           <div className="max-w-[90vw] max-h-[90vh] p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={galleryImages[selectedImage].url}
               alt={galleryImages[selectedImage].alt}

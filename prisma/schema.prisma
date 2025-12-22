@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/**
+ * =========================
+ * ENUMS
+ * =========================
+ */
+
+enum AppointmentStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+/**
+ * =========================
+ * DOMAIN: CABULL
+ * =========================
+ */
+
+model Service {
+  id              String  @id @default(cuid())
+  name            String
+  description     String?
+  durationMinutes Int     @default(30) @map("duration_minutes") // Ej: Corte 30, Corte+Barba 45
+  basePrice       Int?    @map("base_price") // en ARS (opcional)
+  active          Boolean @default(true)
+
+  appointments Appointment[]
+  users     User[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("services")
+}
+
+model BusinessHours {
+  id        String  @id @default(cuid())
+  weekday   Int // 0=Dom ... 6=Sáb
+  startTime String  @map("start_time") // "09:00" (simple y práctico)
+  endTime   String  @map("end_time") // "18:30"
+  isClosed  Boolean @default(false) @map("is_closed")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([weekday])
+  @@map("business_hours")
+}
+
+model BusinessRules {
+  id String @id @default(cuid())
+  reservationWindow Int @map("reservation_window")
+  reservationInterval Int @map("reservation_interval")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("business_rules")
+}
+
+model Appointment {
+  id String @id @default(cuid())
+
+  // Cliente
+  customerEmail String  @map("customer_email")
+  customerId    String? @map("customer_id") // Es opcional a menos que el cliente esté registrado
+  customer      User?   @relation(fields: [customerId], references: [id])
+
+  // Servicio
+  serviceId String  @map("service_id")
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  // Horario
+  startAt DateTime @map("start_at")
+
+  status AppointmentStatus @default(PENDING_CONFIRMATION)
+
+  // Confirmación por email (cliente)
+  confirmationTokenHash String?   @map("confirmation_token_hash")
+  confirmationExpiresAt DateTime? @map("confirmation_expires_at")
+
+  // Admin/Barbero: cierre del turno
+  totalCost Int?    @map("total_cost") // costo final (ARS)
+  notes     String?
+
+  // Barbero (AdminUser con role = BARBER)
+  barberId String    @map("barber_id")
+  barber   AdminUser @relation(fields: [barberId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Evita doble reserva del mismo horario (para 1 barbero).
+  @@unique([barberId, startAt])
+  @@index([status, startAt])
+  @@index([customerEmail])
+  @@index([serviceId, startAt])
+  @@map("appointments")
+}
+
+/**
+ * =========================
+ * ADMIN AUTH (ALLOWLIST / ROLES)
+ * - Útil si querés staff y control desde DB
+ * - Better Auth puede usar estas tablas como "user" si tu adapter lo permite,
+ * o podés mantenerlo separado (y usar allowlist por env).
+ * =========================
+ */
+
+enum AdminRole {
+  OWNER
+  STAFF
+  BARBER
+}
+
+model AdminUser {
+  id     String    @id @default(cuid())
+  email  String    @unique
+  role   AdminRole @default(OWNER)
+  active Boolean   @default(true)
+
+  // UI / calendario
+  color String? // ej: "#111111"
+
+  // Relaciones
+  appointments Appointment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active, role])
+  @@map("admin_users")
+}
+
+/**
+ * =========================
+ * GENERIC AUTH TABLES (para Better Auth / Sessions)
+ * - Estas tablas son un “estándar” estilo NextAuth/BetterAuth.
+ * - Si tu Better Auth adapter ya trae su propio schema,
+ * reemplazá esta sección por el requerido por el adapter.
+ * =========================
+ */
+
+enum UserType {
+  VIP
+  REGULAR
+  NEW
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  emailVerified      DateTime? @map("email_verified")
+  name               String?
+  phone              String?
+  preferredServiceId String?   @map("preferred_service_id")
+  preferredService   Service?  @relation(fields: [preferredServiceId], references: [id])
+  userType           UserType  @default(REGULAR) @map("user_type")
+  notes              String?
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("users")
+}
+
+// Para “magic link / email verification” (token de un solo uso)
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@index([expires])
+  @@map("verification_tokens")
+}
