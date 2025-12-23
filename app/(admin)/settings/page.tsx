@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { SettingsIcon } from 'lucide-react'
 import { Metadata } from 'next'
 import { SidebarProvider } from '@/context/sidebar-context'
+import { getBusinessHours, getBusinessRules } from '@/actions/business'
+import { getServices } from '@/actions/services'
+import { getTeam } from '@/actions/team'
 
 export const metadata: Metadata = {
   title: "CABULL | Configuraciones",
@@ -19,7 +22,13 @@ export const metadata: Metadata = {
     images: ["https://lh3.googleusercontent.com/aida-public/AB6AXuCMMf0FWYZwr2-cu2opMYb-YaVy62k7RTecQ8-qAY-HdE6TfYworShAvALhBSat-eVTm_xXiGY1ymVnHN3uKvGF82-KabIaf7cE1oTijOhqUf8njemzIsi1YGp4h3BYBpIuZ_QLmUf5016IyKGYktq_DjFBzyXvPTI8qnjPOrBJhKr71IATcSSqZF7h99QoBrLjD8jV0eD0-Yfz-2uwUhJUoDueurV8Jami8NmfTY8Ej6Tffk7qFp__W97x3WRzA1PnGPX-VjP0i2Z2"],
   },
 }
-function SettingsPage() {
+async function SettingsPage() {
+
+  const { businessRules } = await getBusinessRules()
+  const { businessHours } = await getBusinessHours()
+  const { services } = await getServices(false)
+  const { team } = await getTeam()
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
@@ -39,9 +48,14 @@ function SettingsPage() {
                 </Button>
               </div>
             </div>
-            <SettingsBusinessLogic />
-            <SettingsServicesList />
-            <SettingsTeam />
+            <SettingsBusinessLogic
+              businessHours={businessHours || []}
+              reservationWindow={businessRules?.reservationWindow?.toString() || '7'}
+              reservationInterval={businessRules?.reservationInterval?.toString() || '30'}
+              id={businessRules?.id || ''}
+            />
+            <SettingsServicesList services={services || []} />
+            <SettingsTeam team={team || []} />
           </div>
         </main>
       </div>

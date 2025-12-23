@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, XIcon, LogOutIcon } from 'lucide-react'
 import { ModeToggle } from '../mode-toggle'
 import { useSidebar } from '@/context/sidebar-context'
+import Image from 'next/image'
 
 function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 'settings' }) {
   const { isOpen, close } = useSidebar()
@@ -12,22 +13,22 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
 
     {
       icon: CalendarIcon,
-      label: 'Schedule',
+      label: 'Itinerario Diario',
       href: '/bookings'
     },
     {
       icon: UsersIcon,
-      label: 'Clients',
+      label: 'Clientes',
       href: '/clients'
     },
     {
       icon: BarChartIcon,
-      label: 'Performance',
+      label: 'Rendimiento',
       href: '/analytics'
     },
     {
       icon: SettingsIcon,
-      label: 'Settings',
+      label: 'Configuraciones',
       href: '/settings'
     }
   ]
@@ -58,18 +59,8 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
         <div className="p-6 flex flex-col gap-8">
           {/* Header del sidebar con botón de cerrar en móviles */}
           <div className="flex gap-4 items-center justify-between">
-            <div className="flex gap-4 items-center">
-              <div
-                className="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-sm"
-                data-alt="Barbershop logo with scissors and comb icon"
-                style={{
-                  backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuATp5ATnvlUtV8g_ZnyAMDIcj9F_YQzJE9lTA3xfRGLFRb1LmB0jusL00RKrvrxfijvCucyh_JDZJY-gthnsPQduOXEF40-tfJq75MP4wpuCOAxFYkVzqSmgrbtn2Iygrp21XTtjLI5KzrsCFcAnWVIT-kuzEPD7fATSjj_ewRCT1BOoYTKuLsCQtUGY7WRH1KzPZCM6kxQO4-pu1WQNXKaHFO5F3j47BSSowSK9DsFh-eKUZScvAAaeU4YpR0It-71ri1KDjqcZoVD")'
-                }}
-              ></div>
-              <div className="flex flex-col">
-                <h1 className="text-lg font-bold leading-tight">CABULL Barber</h1>
-                <p className="text-muted-foreground text-sm font-medium">La Plata Branch</p>
-              </div>
+            <div className="flex gap-4 items-center w-full justify-center">
+              <Image src="/logo.svg" alt="logo" width={180} height={180} className="dark:invert" />
             </div>
             {/* Botón de cerrar solo visible en móviles */}
             <button

@@ -13,7 +13,11 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, PlusIcon, ScissorsIcon, UserIcon, DiamondIcon, EditIcon, Trash2Icon } from "lucide-react"
+import { ArrowUpDown, ChevronDown, PlusIcon, EditIcon, Trash2Icon, CheckIcon, XIcon } from "lucide-react"
+import { useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { createService, updateService, deleteService } from "@/actions/services"
 
 import { Card, CardHeader, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
@@ -29,13 +33,6 @@ import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
 import { Switch } from '../ui/switch'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select'
-import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -45,6 +42,16 @@ import {
   SheetTitle,
 } from '../ui/sheet'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog'
+import {
   Table,
   TableBody,
   TableCell,
@@ -52,62 +59,8 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table'
-
-// Tipo de datos para los servicios
-export type Service = {
-  id: string
-  name: string
-  description: string | null
-  durationMinutes: number
-  basePrice: number | null
-  active: boolean
-  icon: "scissors" | "user" | "diamond"
-}
-
-// Datos de ejemplo (luego se pueden conectar a datos reales desde Prisma)
-const data: Service[] = [
-  {
-    id: "1",
-    name: "Corte Clásico",
-    description: "Corte de tijera estándar y estilo",
-    durationMinutes: 30,
-    basePrice: 2500,
-    active: true,
-    icon: "scissors",
-  },
-  {
-    id: "2",
-    name: "Afeitar",
-    description: "Afeitar y toalla caliente",
-    durationMinutes: 20,
-    basePrice: 1500,
-    active: true,
-    icon: "user",
-  },
-  {
-    id: "3",
-    name: "Servicio Completo",
-    description: "Corte, afeitar y lavado",
-    durationMinutes: 60,
-    basePrice: 4500,
-    active: true,
-    icon: "diamond",
-  },
-]
-
-// Función para obtener el icono según el tipo
-const getIcon = (iconType: Service["icon"]) => {
-  switch (iconType) {
-    case "scissors":
-      return <ScissorsIcon className="size-4" />
-    case "user":
-      return <UserIcon className="size-4" />
-    case "diamond":
-      return <DiamondIcon className="size-4" />
-    default:
-      return <ScissorsIcon className="size-4" />
-  }
-}
+import { Service } from "@/lib/generated/prisma/client"
+import { formatPriceARS } from "@/lib/utils"
 
 // Definición de columnas del DataTable
 export const columns: ColumnDef<Service>[] = [
@@ -151,9 +104,6 @@ export const columns: ColumnDef<Service>[] = [
       const service = row.original
       return (
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-lg border border-border-light flex items-center justify-center text-text-main shadow-sm">
-            {getIcon(service.icon)}
-          </div>
           <div>
             <p className="text-text-main font-bold">{service.name}</p>
             {service.description && (
@@ -203,12 +153,21 @@ export const columns: ColumnDef<Service>[] = [
         return <div className="text-text-secondary">-</div>
       }
       // Formatear el precio como moneda argentina
-      const formatted = new Intl.NumberFormat("es-AR", {
-        style: "currency",
-        currency: "ARS",
-        minimumFractionDigits: 0,
-      }).format(price)
+      const formatted = formatPriceARS(price)
       return <div className="font-medium text-text-main">{formatted}</div>
+    },
+  },
+  {
+    accessorKey: "active",
+    header: ({ column }) => {
+      return <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="h-8 px-2 lg:px-3">
+        Activo
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    },
+    cell: ({ row }) => {
+      const active = row.getValue("active") as boolean
+      return <div className="font-medium text-text-main">{active ? <CheckIcon className="h-4 w-4" /> : <XIcon className="h-4 w-4" />}</div>
     },
   },
   {
@@ -246,7 +205,9 @@ export const columns: ColumnDef<Service>[] = [
   },
 ]
 
-function SettingsServicesList() {
+function SettingsServicesList({ services }: { services: Service[] | undefined }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -256,6 +217,10 @@ function SettingsServicesList() {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingService, setEditingService] = React.useState<Service | null>(null)
 
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [serviceToDelete, setServiceToDelete] = React.useState<Service | null>(null)
+
   // Estado del formulario
   const [formData, setFormData] = React.useState<{
     name: string
@@ -263,14 +228,14 @@ function SettingsServicesList() {
     durationMinutes: number
     basePrice: string
     active: boolean
-    icon: Service["icon"]
+    features: string[]
   }>({
     name: "",
     description: "",
     durationMinutes: 30,
     basePrice: "",
     active: true,
-    icon: "scissors",
+    features: [],
   })
 
   // Función para abrir el Sheet en modo crear
@@ -282,7 +247,7 @@ function SettingsServicesList() {
       durationMinutes: 30,
       basePrice: "",
       active: true,
-      icon: "scissors",
+      features: [],
     })
     setIsSheetOpen(true)
   }
@@ -296,7 +261,7 @@ function SettingsServicesList() {
       durationMinutes: service.durationMinutes,
       basePrice: service.basePrice?.toString() || "",
       active: service.active,
-      icon: service.icon,
+      features: service.features || [],
     })
     setIsSheetOpen(true)
   }
@@ -304,26 +269,87 @@ function SettingsServicesList() {
   // Función para manejar el envío del formulario
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Aquí iría la lógica para guardar el servicio
-    // Por ahora solo cerramos el Sheet
-    console.log("Guardando servicio:", {
-      ...formData,
-      basePrice: formData.basePrice ? parseInt(formData.basePrice) : null,
+
+    startTransition(async () => {
+      try {
+        // Preparar los datos del servicio
+        const serviceData = {
+          name: formData.name,
+          description: formData.description || null,
+          durationMinutes: formData.durationMinutes,
+          basePrice: formData.basePrice ? parseInt(formData.basePrice, 10) : null,
+          active: formData.active,
+          features: formData.features,
+        }
+
+        let result
+        if (editingService) {
+          // Actualizar servicio existente
+          result = await updateService({
+            id: editingService.id,
+            ...serviceData,
+          })
+        } else {
+          // Crear nuevo servicio
+          result = await createService(serviceData)
+        }
+
+        if (result.success) {
+          // Mostrar mensaje de éxito y cerrar el Sheet
+          toast.success(
+            editingService
+              ? "Servicio actualizado correctamente."
+              : "Servicio creado correctamente."
+          )
+          setIsSheetOpen(false)
+          router.refresh()
+        } else {
+          // Mostrar mensaje de error
+          toast.error(result.error || "Ocurrió un error al guardar el servicio.")
+        }
+      } catch (error) {
+        // Error inesperado
+        toast.error("Error inesperado al guardar el servicio.")
+      }
     })
-    setIsSheetOpen(false)
-    // TODO: Aquí deberías hacer la llamada a la API para crear/actualizar el servicio
   }
 
-  // Función para manejar la eliminación
+  // Función para abrir el diálogo de confirmación de eliminación
   const handleDelete = (service: Service) => {
-    // Aquí iría la lógica para eliminar el servicio
-    console.log("Eliminando servicio:", service.id)
-    // TODO: Aquí deberías hacer la llamada a la API para eliminar el servicio
+    setServiceToDelete(service)
+    setDeleteDialogOpen(true)
+  }
+
+  // Función para confirmar la eliminación
+  const handleConfirmDelete = async () => {
+    if (!serviceToDelete) return
+
+    startTransition(async () => {
+      try {
+        const result = await deleteService(serviceToDelete.id)
+
+        if (result.success) {
+          // Cerrar diálogo y refrescar la página
+          toast.success("Servicio eliminado correctamente.")
+          setDeleteDialogOpen(false)
+          setServiceToDelete(null)
+          router.refresh()
+        } else {
+          // Mostrar mensaje de error
+          toast.error(result.error || "Ocurrió un error al eliminar el servicio.")
+          setDeleteDialogOpen(false)
+        }
+      } catch (error) {
+        // Error inesperado
+        toast.error("Error inesperado al eliminar el servicio.")
+        setDeleteDialogOpen(false)
+      }
+    })
   }
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data,
+    data: services || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -550,42 +576,15 @@ function SettingsServicesList() {
               />
             </div>
 
-            {/* Icono */}
+            {/* Features */}
             <div className="grid gap-2">
-              <Label htmlFor="icon">Icono</Label>
-              <Select
-                value={formData.icon}
-                onValueChange={(value: Service["icon"]) => setFormData({ ...formData, icon: value })}
-              >
-                <SelectTrigger id="icon" className="flex items-center gap-2">
-                  {getIcon(formData.icon)}
-                  <SelectValue>
-                    {formData.icon === "scissors" && "Tijeras"}
-                    {formData.icon === "user" && "Usuario"}
-                    {formData.icon === "diamond" && "Diamante"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="scissors">
-                    <div className="flex items-center gap-2">
-                      <ScissorsIcon className="size-4" />
-                      <span>Tijeras</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="user">
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="size-4" />
-                      <span>Usuario</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="diamond">
-                    <div className="flex items-center gap-2">
-                      <DiamondIcon className="size-4" />
-                      <span>Diamante</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="features">Características</Label>
+              <Input
+                id="features"
+                value={formData.features.join(',')}
+                onChange={(e) => setFormData({ ...formData, features: e.target.value.split(',') })}
+                placeholder="Ej: Corte Clásico, Barba, Cepillado, etc."
+              />
             </div>
 
             {/* Estado activo */}
@@ -609,13 +608,42 @@ function SettingsServicesList() {
                   Cancelar
                 </Button>
               </SheetClose>
-              <Button type="submit">
-                {editingService ? "Guardar Cambios" : "Crear Servicio"}
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? editingService
+                    ? "Guardando..."
+                    : "Creando..."
+                  : editingService
+                    ? "Guardar Cambios"
+                    : "Crear Servicio"}
               </Button>
             </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* Diálogo de confirmación para eliminar servicio */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar servicio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el servicio{" "}
+              <strong>{serviceToDelete?.name}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

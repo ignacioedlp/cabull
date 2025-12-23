@@ -5,6 +5,7 @@ import Link from "next/link"
 import { MenuIcon, Scissors, XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
+import Image from "next/image"
 
 // Definimos el tipo para los items del menú
 interface NavItem {
@@ -27,12 +28,12 @@ export function Navbar({
   items = [
     { label: "Nosotros", href: "/#nosotros" },
     { label: "Servicios", href: "/#servicios" },
-    { label: "Reservar", href: "/#reservar" },
+    { label: "Reservar", href: "/#reservas" },
     { label: "Galeria", href: "/#galeria" },
     { label: "Contacto", href: "/#localizacion" },
   ],
   buttonLabel = "Reservar",
-  buttonHref = "/#reservar",
+  buttonHref = "/#reservas",
   onButtonClick,
   className,
 }: NavbarProps) {
@@ -62,12 +63,7 @@ export function Navbar({
           <div className="w-full max-w-[960px] flex items-center justify-between py-4">
             {/* Logo a la izquierda */}
             <div className="flex items-center gap-4 ">
-              {logo || (
-                <div className="size-6 text-primary">
-                  <Scissors className="size-6" />
-                </div>
-              )}
-              <h2 className="text-xl font-black leading-tight tracking-tight">CABULL</h2>
+              <Image src="/logo.svg" alt="logo" width={100} height={100} className="dark:invert" />
             </div>
 
             {/* Menú de navegación - visible en desktop, oculto en móvil */}

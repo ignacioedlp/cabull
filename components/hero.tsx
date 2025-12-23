@@ -33,7 +33,7 @@ export function Hero() {
                     </h2>
                   </div>
                   <div className="flex gap-4 z-10 pt-4">
-                    <Link href="/#reservar">
+                    <Link href="/#reservas">
                       <Button>Reservar un turno</Button>
                     </Link>
                     <Link href="/#servicios">

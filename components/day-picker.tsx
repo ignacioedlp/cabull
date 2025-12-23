@@ -18,14 +18,22 @@ interface DayPickerProps {
   // Array de días de la semana que no pueden ser elegidos
   // 0 = Domingo, 1 = Lunes, 2 = Martes, ..., 6 = Sábado
   disabledDaysOfWeek?: number[]
+
+  // Función que se ejecuta cuando se selecciona un día
+  handleAction?: (date: Dayjs) => void
+
+  // Fecha inicial
+  day: Dayjs | string | Date
 }
 
 function DayPicker({
   minDate,
   maxDate,
-  disabledDaysOfWeek = []
+  disabledDaysOfWeek = [],
+  handleAction,
+  day = dayjs(),
 }: DayPickerProps) {
-  const [date, setDate] = useState(dayjs())
+  const [date, setDate] = useState(dayjs(day))
   const [open, setOpen] = useState(false)
 
   // Convertir las fechas límite a objetos dayjs para comparaciones
@@ -123,6 +131,8 @@ function DayPicker({
     if (!minDateObj || !previousDay.isBefore(minDateObj, 'day')) {
       setDate(previousDay)
     }
+
+    handleAction?.(previousDay)
   }
 
   const handleNextDay = () => {
@@ -133,6 +143,8 @@ function DayPicker({
     if (!maxDateObj || !nextDay.isAfter(maxDateObj, 'day')) {
       setDate(nextDay)
     }
+
+    handleAction?.(nextDay)
   }
 
   const handleToday = () => {
@@ -147,6 +159,8 @@ function DayPicker({
     } else {
       setDate(today)
     }
+
+    handleAction?.(today)
   }
 
   // Función para deshabilitar días en el calendario
@@ -175,7 +189,7 @@ function DayPicker({
             type="button"
             variant="outline"
             id="date"
-            className="w-48 justify-center font-normal items-center"
+            className="w-48 justify-center font-normal items-center capitalize"
           >
             {date.locale('es').format('dddd, DD [de] MMMM')}
           </Button>
@@ -210,6 +224,8 @@ function DayPicker({
                   setDate(selectedDay)
                   setOpen(false)
                 }
+
+                handleAction?.(selectedDay)
               }
             }}
           />

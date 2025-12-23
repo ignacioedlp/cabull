@@ -11,22 +11,83 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import OperatingDays from './operating-days'
-import { useState } from 'react'
+import { updateBusinessRules } from '@/actions/business'
+import { useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { BusinessHours } from '@/lib/generated/prisma/client'
+import { toast } from 'sonner'
 
-function SettingsBusinessLogic() {
+function SettingsBusinessLogic({
+  reservationWindow,
+  reservationInterval,
+  id,
+  businessHours
+}: {
+  reservationWindow: string
+  reservationInterval: string
+  id: string
+  businessHours: BusinessHours[]
+}) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
-
-  const [reservationWindow, setReservationWindow] = useState('7')
-  const [reservationInterval, setReservationInterval] = useState('30')
-
+  // Handler para cuando cambia la ventana de reservas
   const handleReservationWindowChange = (value: string) => {
-    setReservationWindow(value)
-    console.log("reservationWindow", value)
+    startTransition(async () => {
+      try {
+        // Convertir el valor string a número
+        const reservationWindowNumber = parseInt(value, 10)
+        const reservationIntervalNumber = parseInt(reservationInterval, 10)
+
+        // Llamar al server action para actualizar
+        const result = await updateBusinessRules({
+          id,
+          reservationWindow: reservationWindowNumber,
+          reservationInterval: reservationIntervalNumber,
+        })
+
+        // Feedback al usuario
+        if (result.success) {
+          // Éxito
+          toast.success("Ventana de reservas actualizada correctamente.")
+          router.refresh()
+        } else {
+          // Error controlado desde el server action
+          toast.error(result.error || "Ocurrió un error al actualizar la ventana de reservas.")
+        }
+      } catch (error) {
+        // Error inesperado
+        toast.error("Error inesperado al actualizar la ventana de reservas.")
+      }
+    })
   }
 
+  // Handler para cuando cambia el intervalo de reservas
   const handleReservationIntervalChange = (value: string) => {
-    setReservationInterval(value)
-    console.log("reservationInterval", value)
+    startTransition(async () => {
+      try {
+        // Convertir el valor string a número
+        const reservationIntervalNumber = parseInt(value, 10)
+        const reservationWindowNumber = parseInt(reservationWindow, 10)
+
+        // Llamar al server action para actualizar
+        const result = await updateBusinessRules({
+          id,
+          reservationWindow: reservationWindowNumber,
+          reservationInterval: reservationIntervalNumber,
+        })
+
+        // Feedback al usuario
+        if (result.success) {
+          toast.success("Intervalo de citas actualizado correctamente.")
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el intervalo de citas.")
+        }
+      } catch (error) {
+        toast.error("Error inesperado al actualizar el intervalo de citas.")
+      }
+    })
   }
 
   return (
@@ -40,13 +101,13 @@ function SettingsBusinessLogic() {
       </CardHeader>
       <CardContent className=" grid gap-8 md:grid-cols-2">
         {/* Componente modularizado para los días de operación */}
-        <OperatingDays />
+        <OperatingDays businessHours={businessHours} />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <label className="text-text-main text-sm font-bold uppercase tracking-wider">Intervalo de Citas</label>
             <p className="text-text-secondary text-xs mb-1">Tiempo entre slots mostrados a los clientes.</p>
             <div className="relative">
-              <Select value={reservationInterval} onValueChange={handleReservationIntervalChange}>
+              <Select value={reservationInterval} onValueChange={handleReservationIntervalChange} disabled={isPending}>
                 <SelectTrigger className="w-full border border-border-light text-text-main text-sm rounded-lg focus:ring-primary focus:border-primary p-3 appearance-none shadow-sm">
                   <SelectValue placeholder={`${reservationInterval} Minutos`} />
                 </SelectTrigger>
@@ -65,7 +126,7 @@ function SettingsBusinessLogic() {
             <label className="text-text-main text-sm font-bold uppercase tracking-wider">Ventana de Reservas</label>
             <p className="text-text-secondary text-xs mb-1">Cuánto tiempo antes pueden reservar los clientes.</p>
             <div className="relative">
-              <Select value={reservationWindow} onValueChange={handleReservationWindowChange}>
+              <Select value={reservationWindow} onValueChange={handleReservationWindowChange} disabled={isPending}>
                 <SelectTrigger className="w-full border border-border-light text-text-main text-sm rounded-lg focus:ring-primary focus:border-primary p-3 appearance-none shadow-sm">
                   <SelectValue placeholder={`${reservationWindow} Semanas`} />
                 </SelectTrigger>

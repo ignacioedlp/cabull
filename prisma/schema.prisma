@@ -41,6 +41,7 @@ model Service {
   durationMinutes Int     @default(30) @map("duration_minutes") // Ej: Corte 30, Corte+Barba 45
   basePrice       Int?    @map("base_price") // en ARS (opcional)
   active          Boolean @default(true)
+  features        String[] @map("features")
 
   appointments Appointment[]
   users     User[]
@@ -133,6 +134,7 @@ enum AdminRole {
 model AdminUser {
   id     String    @id @default(cuid())
   email  String    @unique
+  name   String?
   role   AdminRole @default(OWNER)
   active Boolean   @default(true)
 
@@ -182,7 +184,7 @@ model User {
   @@map("users")
 }
 
-// Para “magic link / email verification” (token de un solo uso)
+// Para "magic link / email verification" (token de un solo uso)
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -191,4 +193,16 @@ model VerificationToken {
   @@unique([identifier, token])
   @@index([expires])
   @@map("verification_tokens")
+}
+
+// Para rate limiting por IP (control de intentos de reserva)
+model RateLimitAttempt {
+  id        String   @id @default(cuid())
+  ipAddress String   @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at") // Para limpieza automática
+
+  @@index([ipAddress, createdAt])
+  @@index([expiresAt]) // Para limpieza eficiente de registros expirados
+  @@map("rate_limit_attempts")
 }

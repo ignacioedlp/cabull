@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { DownloadIcon } from "lucide-react"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
 import dayjs from "dayjs"
 
-function AnalyticsActions() {
-  const [selectedPeriod, setSelectedPeriod] = useState(dayjs().format("MM"))
-  const [selectedYear, setSelectedYear] = useState(dayjs().format("YYYY"))
+function AnalyticsActions({ month, year }: { month: string, year: string }) {
+  const router = useRouter()
 
   // Array de meses en español
+  // Los valores deben ser "01"-"12" porque getAnalytics espera formato MM estándar
   const months = [
     { value: "01", label: "Enero" },
     { value: "02", label: "Febrero" },
@@ -40,13 +40,38 @@ function AnalyticsActions() {
     return { value: year.toString(), label: year.toString() }
   })
 
+  // Función para actualizar los parámetros de búsqueda en la URL
+  const updateSearchParams = (newMonth?: string, newYear?: string) => {
+    const params = new URLSearchParams()
+
+    // Siempre incluir ambos parámetros explícitamente
+    // Si se proporciona un nuevo valor, usarlo; sino mantener el actual de las props
+    params.set('month', newMonth || month)
+    params.set('year', newYear || year)
+
+    // Redirigir con los nuevos parámetros
+    router.push(`/analytics?${params.toString()}`)
+  }
+
+  // Handler para cuando cambia el mes
+  // Mantiene el año actual de las props
+  const handleMonthChange = (value: string) => {
+    updateSearchParams(value, undefined)
+  }
+
+  // Handler para cuando cambia el año
+  // Mantiene el mes actual de las props
+  const handleYearChange = (value: string) => {
+    updateSearchParams(undefined, value)
+  }
+
   // Obtener el nombre del mes seleccionado
-  const selectedMonthLabel = months.find(m => m.value === selectedPeriod)?.label || "Este Mes"
+  const selectedMonthLabel = months.find(m => m.value === month)?.label || "Este Mes"
 
   return (
     <div className="flex items-center justify-end gap-2 w-full md:w-auto">
       {/* Select para el mes */}
-      <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+      <Select value={month} onValueChange={handleMonthChange}>
         <SelectTrigger className="w-30">
           <SelectValue placeholder="Este Mes">
             {selectedMonthLabel}
@@ -65,10 +90,10 @@ function AnalyticsActions() {
       </Select>
 
       {/* Select para el año */}
-      <Select value={selectedYear} onValueChange={setSelectedYear}>
+      <Select value={year} onValueChange={handleYearChange}>
         <SelectTrigger className="w-28">
           <SelectValue placeholder="Este Año">
-            {selectedYear}
+            {year}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

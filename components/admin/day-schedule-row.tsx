@@ -16,6 +16,8 @@ interface DayScheduleRowProps {
   isEnabled: boolean
   // Si el día está deshabilitado (como el domingo)
   isDisabled?: boolean
+  // Estado global de carga (cuando se está guardando en el servidor)
+  isPending?: boolean
   // Función que se ejecuta cuando cambia la hora de inicio
   onStartTimeChange: (value: string) => void
   // Función que se ejecuta cuando cambia la hora de fin
@@ -34,6 +36,7 @@ function DayScheduleRow({
   endTime,
   isEnabled,
   isDisabled = false,
+  isPending = false,
   onStartTimeChange,
   onEndTimeChange,
   onToggleChange,
@@ -43,7 +46,7 @@ function DayScheduleRow({
       className={`flex items-center justify-between p-3 rounded-lg bg-background-main border border-border-light `}
     >
       {/* Nombre del día */}
-      <span className="text-text-main text-sm font-medium w-20">{dayName}</span>
+      <span className="text-text-main text-sm font-medium w-20 capitalize">{dayName}</span>
 
       {/* Contenedor de los inputs de hora */}
       <div className="flex items-center gap-2 flex-1 justify-end mr-4">
@@ -53,7 +56,7 @@ function DayScheduleRow({
             }`}
           type="time"
           value={startTime}
-          disabled={isDisabled}
+          disabled={isDisabled || isPending}
           onChange={(e) => onStartTimeChange(e.target.value)}
         />
         {/* Separador "a" entre las horas */}
@@ -64,7 +67,7 @@ function DayScheduleRow({
             }`}
           type="time"
           value={endTime}
-          disabled={isDisabled}
+          disabled={isDisabled || isPending}
           onChange={(e) => onEndTimeChange(e.target.value)}
         />
       </div>
@@ -72,6 +75,7 @@ function DayScheduleRow({
       {/* Switch para habilitar/deshabilitar el día */}
       <Switch
         checked={isEnabled}
+        disabled={isPending}
         onCheckedChange={onToggleChange}
         aria-label={`Habilitar o deshabilitar ${dayName}`}
       />

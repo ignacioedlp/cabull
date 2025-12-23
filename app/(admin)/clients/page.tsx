@@ -1,13 +1,14 @@
+import { Metadata } from 'next'
 import ClientsFilters from '@/components/admin/clients-filters'
-import ClientsList from '@/components/admin/clients-list'
+import ClientsList, { type ClientFromDB } from '@/components/admin/clients-list'
 import ClientsPagination from '@/components/admin/clients-pagination'
+import ClientsSearch from '@/components/admin/clients-search'
 import Sidebar from '@/components/admin/sidebar'
 import AdminMobileHeader from '@/components/admin/admin-mobile-header'
 import AdminPageHeader from '@/components/admin/admin-page-header'
-import { Input } from '@/components/ui/input'
-import { SearchIcon, UsersIcon } from 'lucide-react'
-import { Metadata } from 'next'
+import { UsersIcon } from 'lucide-react'
 import { SidebarProvider } from '@/context/sidebar-context'
+import { getClients } from '@/actions/clients'
 
 export const metadata: Metadata = {
   title: "CABULL | Clientes",
@@ -20,7 +21,38 @@ export const metadata: Metadata = {
   },
 }
 
-function ClientPgae() {
+interface ClientsPageProps {
+  searchParams: Promise<{
+    page?: string
+    name?: string
+    email?: string
+    userType?: string
+    activityFilter?: "recent" | "inactive"
+  }>
+}
+
+async function ClientPage({ searchParams }: ClientsPageProps) {
+  // Await searchParams (it's a Promise in Next.js 15+)
+  const params = await searchParams
+
+  // Parse search params with defaults
+  const page = parseInt(params.page || "1", 10)
+  const pageSize = 12 // Number of clients per page
+  const name = params.name || undefined
+  const email = params.email || undefined
+  const userType = params.userType || undefined
+  const activityFilter = params.activityFilter || null
+
+  // Fetch clients from server
+  const { clients, total } = await getClients(page, pageSize, {
+    name,
+    email,
+    userType,
+    activityFilter,
+  })
+
+  const totalPages = Math.ceil(total / pageSize)
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
@@ -30,20 +62,21 @@ function ClientPgae() {
           <div className="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full">
             <AdminPageHeader
               title="Clientes"
-              subtitle="Total 2,453 Clientes"
+              subtitle={`Total ${total} Clientes`}
               icon={UsersIcon}
               actions={
-                <>
-                  <div className="relative flex-1 md:w-64">
-                    <SearchIcon className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input className="w-full pl-10 pr-4 h-10 rounded-lg border border-muted border-b-2 bg-background text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all " placeholder="Buscar clientes..." type="text" />
-                  </div>
-                </>
+                <ClientsSearch initialName={name || ""} />
               }
             />
-            <ClientsFilters />
-            <ClientsList />
-            <ClientsPagination />
+            <ClientsFilters
+              currentActivityFilter={activityFilter}
+              currentUserTypeFilter={userType}
+            />
+            <ClientsList clients={clients as ClientFromDB[]} isLoading={false} />
+            <ClientsPagination
+              currentPage={page}
+              totalPages={totalPages}
+            />
           </div>
         </main>
       </div>
@@ -51,4 +84,4 @@ function ClientPgae() {
   )
 }
 
-export default ClientPgae
+export default ClientPage

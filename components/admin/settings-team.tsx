@@ -23,67 +23,23 @@ import {
   SheetHeader,
   SheetTitle,
 } from '../ui/sheet'
-import { UserPlusIcon, EditIcon, PlusIcon } from 'lucide-react'
-
-// Tipos
-export type AdminRole = "OWNER" | "STAFF" | "BARBER"
-
-export type TeamMember = {
-  id: string
-  name: string
-  email: string
-  role: AdminRole
-  services: string[]
-  enabled: boolean
-  color: string
-}
-
-// Datos de ejemplo (luego se pueden conectar a datos reales desde Prisma)
-const team: TeamMember[] = [
-  {
-    id: "1",
-    name: 'Marco Rossi',
-    email: 'marco.rossi@example.com',
-    role: 'BARBER',
-    services: ['Corte Clásico', 'Afeitar'],
-    enabled: true,
-    color: '#000000'
-  },
-  {
-    id: "2",
-    name: 'David Chen',
-    email: 'david.chen@example.com',
-    role: 'BARBER',
-    services: ['Corte Clásico'],
-    enabled: false,
-    color: '#FF0000'
-  },
-  {
-    id: "3",
-    name: 'Juan Perez',
-    email: 'juan.perez@example.com',
-    role: 'STAFF',
-    services: ['Corte Clásico', 'Afeitar'],
-    enabled: true,
-    color: '#000000'
-  },
-  {
-    id: "4",
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'OWNER',
-    services: [],
-    enabled: true,
-    color: '#000000'
-  }
-]
-
-// Servicios disponibles (esto debería venir de la base de datos)
-const availableServices = [
-  { id: "1", name: "Corte Clásico" },
-  { id: "2", name: "Afeitar" },
-  { id: "3", name: "Servicio Completo" },
-]
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog'
+import { UserPlusIcon, EditIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { AdminRole } from "@/lib/generated/prisma/enums"
+import { AdminUser } from "@/lib/generated/prisma/client"
+import { useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { createTeamMember, updateTeamMember, deleteTeamMember, updateTeamMemberActive } from "@/actions/team"
 
 // Función para obtener el texto del rol
 const getRoleLabel = (role: AdminRole): string => {
@@ -102,10 +58,16 @@ const getRoleLabel = (role: AdminRole): string => {
 // Componente de tarjeta de equipo
 const TeamCard = ({
   team,
-  onEdit
+  onEdit,
+  onDelete,
+  onToggleActive,
+  isPending
 }: {
-  team: TeamMember
-  onEdit: (member: TeamMember) => void
+  team: AdminUser
+  onEdit: (member: AdminUser) => void
+  onDelete: (member: AdminUser) => void
+  onToggleActive: (member: AdminUser) => void
+  isPending: boolean
 }) => {
   return (
     <Card>
@@ -120,34 +82,37 @@ const TeamCard = ({
             variant="ghost"
             className="text-text-secondary hover:text-text-main"
             onClick={() => onEdit(team)}
+            disabled={isPending}
           >
             <EditIcon className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-text-secondary hover:text-destructive"
+            onClick={() => onDelete(team)}
+            disabled={isPending}
+          >
+            <Trash2Icon className="size-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <h4 className="text-text-main font-bold text-lg">{team.name}</h4>
+        <h4 className="text-text-main font-bold text-lg">{team.name || team.email}</h4>
         <p className="text-text-secondary text-sm mb-4">{getRoleLabel(team.role)}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {team.services.map((service) => (
-            <span
-              key={service}
-              className="px-2 py-1 bg-background-main rounded text-xs text-text-secondary border border-border-light font-medium"
-            >
-              {service}
-            </span>
-          ))}
-        </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between pt-4 border-t border-border-light">
         <div className="flex items-center gap-2">
-          <div className={`size-2 rounded-full ${team.enabled ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-          <span className={`text-xs ${team.enabled ? 'text-green-600' : 'text-yellow-600'} font-bold`}>
-            {team.enabled ? 'Disponible' : 'En Descanso'}
+          <div className={`size-2 rounded-full ${team.active ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+          <span className={`text-xs ${team.active ? 'text-green-600' : 'text-yellow-600'} font-bold`}>
+            {team.active ? 'Disponible' : 'En Descanso'}
           </span>
         </div>
-        <button className="text-xs font-bold text-primary hover:underline">
-          {team.enabled ? 'Desactivar' : 'Activar'}
+        <button
+          className="text-xs font-bold text-primary hover:underline disabled:opacity-50"
+          onClick={() => onToggleActive(team)}
+          disabled={isPending}
+        >
+          {team.active ? 'Desactivar' : 'Activar'}
         </button>
       </CardFooter>
     </Card>
@@ -155,24 +120,29 @@ const TeamCard = ({
 }
 
 
-function SettingsTeam() {
+function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
   // Estado para el Sheet y el miembro a editar
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
-  const [editingMember, setEditingMember] = React.useState<TeamMember | null>(null)
+  const [editingMember, setEditingMember] = React.useState<AdminUser | null>(null)
+
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [memberToDelete, setMemberToDelete] = React.useState<AdminUser | null>(null)
 
   // Estado del formulario
   const [formData, setFormData] = React.useState<{
     name: string
     email: string
     role: AdminRole
-    services: string[]
     enabled: boolean
     color: string
   }>({
     name: "",
     email: "",
     role: "BARBER",
-    services: [],
     enabled: true,
     color: "#000000",
   })
@@ -184,7 +154,6 @@ function SettingsTeam() {
       name: "",
       email: "",
       role: "BARBER",
-      services: [],
       enabled: true,
       color: "#000000",
     })
@@ -192,15 +161,14 @@ function SettingsTeam() {
   }
 
   // Función para abrir el Sheet en modo editar
-  const handleEdit = (member: TeamMember) => {
+  const handleEdit = (member: AdminUser) => {
     setEditingMember(member)
     setFormData({
-      name: member.name,
+      name: member.name || "",
       email: member.email,
       role: member.role,
-      services: member.services,
-      enabled: member.enabled,
-      color: member.color,
+      enabled: member.active,
+      color: member.color || "#000000",
     })
     setIsSheetOpen(true)
   }
@@ -208,20 +176,104 @@ function SettingsTeam() {
   // Función para manejar el envío del formulario
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Aquí iría la lógica para guardar el miembro del equipo
-    console.log("Guardando miembro del equipo:", formData)
-    setIsSheetOpen(false)
-    // TODO: Aquí deberías hacer la llamada a la API para crear/actualizar el miembro
+
+    startTransition(async () => {
+      try {
+        // Preparar los datos del miembro del equipo
+        const teamMemberData = {
+          name: formData.name || null,
+          email: formData.email,
+          role: formData.role,
+          services: [], // Por ahora vacío, se puede implementar después
+          enabled: formData.enabled,
+          color: formData.color || null,
+        }
+
+        let result
+        if (editingMember) {
+          // Actualizar miembro existente
+          result = await updateTeamMember({
+            id: editingMember.id,
+            ...teamMemberData,
+          })
+        } else {
+          // Crear nuevo miembro
+          result = await createTeamMember(teamMemberData)
+        }
+
+        if (result.success) {
+          // Mostrar mensaje de éxito y cerrar el Sheet
+          toast.success(
+            editingMember
+              ? "Miembro del equipo actualizado correctamente."
+              : "Miembro del equipo creado correctamente."
+          )
+          setIsSheetOpen(false)
+          router.refresh()
+        } else {
+          // Mostrar mensaje de error
+          toast.error(result.error || "Ocurrió un error al guardar el miembro del equipo.")
+        }
+      } catch (error) {
+        // Error inesperado
+        toast.error("Error inesperado al guardar el miembro del equipo.")
+      }
+    })
   }
 
-  // Función para manejar la selección de servicios
-  const handleServiceToggle = (serviceName: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      services: prev.services.includes(serviceName)
-        ? prev.services.filter((s) => s !== serviceName)
-        : [...prev.services, serviceName],
-    }))
+  // Función para abrir el diálogo de confirmación de eliminación
+  const handleDelete = (member: AdminUser) => {
+    setMemberToDelete(member)
+    setDeleteDialogOpen(true)
+  }
+
+  // Función para confirmar la eliminación
+  const handleConfirmDelete = async () => {
+    if (!memberToDelete) return
+
+    startTransition(async () => {
+      try {
+        const result = await deleteTeamMember(memberToDelete.id)
+
+        if (result.success) {
+          // Cerrar diálogo y refrescar la página
+          toast.success("Miembro del equipo eliminado correctamente.")
+          setDeleteDialogOpen(false)
+          setMemberToDelete(null)
+          router.refresh()
+        } else {
+          // Mostrar mensaje de error
+          toast.error(result.error || "Ocurrió un error al eliminar el miembro del equipo.")
+          setDeleteDialogOpen(false)
+        }
+      } catch (error) {
+        // Error inesperado
+        toast.error("Error inesperado al eliminar el miembro del equipo.")
+        setDeleteDialogOpen(false)
+      }
+    })
+  }
+
+  // Función para activar/desactivar miembro
+  const handleToggleActive = (member: AdminUser) => {
+    startTransition(async () => {
+      try {
+        const result = await updateTeamMemberActive(member.id, !member.active)
+
+        if (result.success) {
+          toast.success(
+            member.active
+              ? "Miembro del equipo desactivado correctamente."
+              : "Miembro del equipo activado correctamente."
+          )
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el estado del miembro.")
+        }
+      } catch (error) {
+        toast.error("Error inesperado al actualizar el estado del miembro.")
+      }
+    })
   }
 
   return (
@@ -243,8 +295,15 @@ function SettingsTeam() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {team.map((t) => (
-              <TeamCard key={t.id} team={t} onEdit={handleEdit} />
+            {team?.map((t) => (
+              <TeamCard
+                key={t.id}
+                team={t}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleActive={handleToggleActive}
+                isPending={isPending}
+              />
             ))}
             <Card className="border border-dashed border-muted cursor-pointer min-h-[220px] flex flex-col items-center justify-center text-center" onClick={handleCreate}>
               <CardContent className="flex flex-col items-center justify-center text-center transition-colors">
@@ -343,34 +402,12 @@ function SettingsTeam() {
               </div>
             </div>
 
-            {/* Servicios */}
-            <div className="grid gap-2">
-              <Label>Servicios que puede realizar</Label>
-              <div className="grid gap-3 border rounded-md p-4">
-                {availableServices.map((service) => (
-                  <div key={service.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`service-${service.id}`}
-                      checked={formData.services.includes(service.name)}
-                      onCheckedChange={() => handleServiceToggle(service.name)}
-                    />
-                    <Label
-                      htmlFor={`service-${service.id}`}
-                      className="font-normal cursor-pointer"
-                    >
-                      {service.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Estado activo */}
             <div className="flex items-center justify-between">
               <div className="grid gap-1.5">
                 <Label htmlFor="enabled">Miembro Activo</Label>
                 <p className="text-xs text-muted-foreground">
-                  Los miembros inactivos no aparecerán disponibles para reservas.
+                  Los miembros inactivos no aparecerán en el menú de reservas.
                 </p>
               </div>
               <Switch
@@ -386,13 +423,42 @@ function SettingsTeam() {
                   Cancelar
                 </Button>
               </SheetClose>
-              <Button type="submit">
-                {editingMember ? "Guardar Cambios" : "Crear Miembro"}
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? editingMember
+                    ? "Guardando..."
+                    : "Creando..."
+                  : editingMember
+                    ? "Guardar Cambios"
+                    : "Crear Miembro"}
               </Button>
             </SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* Diálogo de confirmación para eliminar miembro del equipo */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar miembro del equipo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el miembro{" "}
+              <strong>{memberToDelete?.name || memberToDelete?.email}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

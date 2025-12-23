@@ -1,135 +1,123 @@
 "use client"
-
-import { useState } from "react"
+import { BusinessHours } from "@/lib/generated/prisma/client"
 import DayScheduleRow from "./day-schedule-row"
-
-// Interface que define la estructura de datos para cada día
-interface DaySchedule {
-  // Nombre del día en español
-  name: string
-  // ID corto para el toggle (ej: "mon", "tue")
-  id: string
-  // Hora de inicio por defecto
-  defaultStartTime: string
-  // Hora de fin por defecto
-  defaultEndTime: string
-  // Si el día está habilitado por defecto
-  defaultEnabled: boolean
-  // Si el día está deshabilitado (no se puede modificar)
-  isDisabled?: boolean
-}
-
+import { useState, useTransition } from "react";
+import dayjs from "dayjs";
+import 'dayjs/locale/es'
+import { updateBusinessHours } from "@/actions/business";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 /**
  * Componente que maneja toda la sección de "Días de Operación"
  * Utiliza un array de configuración para generar dinámicamente las filas de días
  */
-function OperatingDays() {
-  // Array de configuración con los datos de cada día de la semana
-  // Esto hace que sea fácil agregar, modificar o reordenar días
-  const [daysConfig] = useState<DaySchedule[]>([
-    {
-      name: "Lunes",
-      id: "mon",
-      defaultStartTime: "09:00",
-      defaultEndTime: "18:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Martes",
-      id: "tue",
-      defaultStartTime: "09:00",
-      defaultEndTime: "18:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Miércoles",
-      id: "wed",
-      defaultStartTime: "09:00",
-      defaultEndTime: "18:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Jueves",
-      id: "thu",
-      defaultStartTime: "09:00",
-      defaultEndTime: "18:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Viernes",
-      id: "fri",
-      defaultStartTime: "09:00",
-      defaultEndTime: "19:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Sábado",
-      id: "sat",
-      defaultStartTime: "10:00",
-      defaultEndTime: "16:00",
-      defaultEnabled: true,
-    },
-    {
-      name: "Domingo",
-      id: "sun",
-      defaultStartTime: "",
-      defaultEndTime: "",
-      defaultEnabled: false,
-      isDisabled: true,
-    },
-  ])
-
-  // Estado para almacenar los horarios actuales de cada día
-  // Usamos un objeto donde la clave es el ID del día
-  const [schedules, setSchedules] = useState<Record<string, { startTime: string; endTime: string; enabled: boolean }>>(
-    () => {
-      // Inicializamos el estado con los valores por defecto
-      const initialSchedules: Record<string, { startTime: string; endTime: string; enabled: boolean }> = {}
-      daysConfig.forEach((day) => {
-        initialSchedules[day.id] = {
-          startTime: day.defaultStartTime,
-          endTime: day.defaultEndTime,
-          enabled: day.defaultEnabled,
-        }
-      })
-      return initialSchedules
-    }
-  )
+function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
+  const [schedules, setSchedules] = useState<BusinessHours[]>(businessHours)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   // Función que maneja el cambio de hora de inicio para un día específico
   const handleStartTimeChange = (dayId: string, value: string) => {
-    setSchedules((prev) => ({
-      ...prev,
-      [dayId]: {
-        ...prev[dayId],
-        startTime: value,
-      },
-    }))
-    console.log(`${dayId} start time changed to:`, value)
+    // Actualizamos el estado local para feedback inmediato en la UI
+    setSchedules((prev) =>
+      prev.map((hour) =>
+        hour.id === dayId ? { ...hour, startTime: value } : hour
+      )
+    )
+
+    // Buscamos el día correspondiente para enviar al server action
+    const day = schedules.find((hour) => hour.id === dayId)
+    if (!day) return
+
+    startTransition(async () => {
+      try {
+        const result = await updateBusinessHours({
+          id: day.id,
+          weekday: day.weekday,
+          startTime: value,       // nuevo inicio
+          endTime: day.endTime,   // fin actual
+          isClosed: day.isClosed, // estado actual abierto/cerrado
+        })
+
+        if (result.success) {
+          toast.success("Horario de inicio actualizado correctamente.")
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el horario de inicio.")
+        }
+      } catch (error) {
+        toast.error("Error inesperado al actualizar el horario de inicio.")
+      }
+    })
   }
 
   // Función que maneja el cambio de hora de fin para un día específico
   const handleEndTimeChange = (dayId: string, value: string) => {
-    setSchedules((prev) => ({
-      ...prev,
-      [dayId]: {
-        ...prev[dayId],
-        endTime: value,
-      },
-    }))
-    console.log(`${dayId} end time changed to:`, value)
+    setSchedules((prev) =>
+      prev.map((hour) =>
+        hour.id === dayId ? { ...hour, endTime: value } : hour
+      )
+    )
+
+    const day = schedules.find((hour) => hour.id === dayId)
+    if (!day) return
+
+    startTransition(async () => {
+      try {
+        const result = await updateBusinessHours({
+          id: day.id,
+          weekday: day.weekday,
+          startTime: day.startTime,
+          endTime: value,         // nuevo fin
+          isClosed: day.isClosed,
+        })
+
+        if (result.success) {
+          toast.success("Horario de fin actualizado correctamente.")
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el horario de fin.")
+        }
+      } catch (error) {
+        toast.error("Error inesperado al actualizar el horario de fin.")
+      }
+    })
   }
 
   // Función que maneja el cambio del toggle (habilitar/deshabilitar día)
   const handleToggleChange = (dayId: string, checked: boolean) => {
-    setSchedules((prev) => ({
-      ...prev,
-      [dayId]: {
-        ...prev[dayId],
-        enabled: checked,
-      },
-    }))
-    console.log(`${dayId} enabled:`, checked)
+    // En el switch, "checked" significa día habilitado, pero la DB guarda "isClosed"
+    const newIsClosed = !checked
+
+    setSchedules((prev) =>
+      prev.map((hour) =>
+        hour.id === dayId ? { ...hour, isClosed: newIsClosed } : hour
+      )
+    )
+
+    const day = schedules.find((hour) => hour.id === dayId)
+    if (!day) return
+
+    startTransition(async () => {
+      try {
+        const result = await updateBusinessHours({
+          id: day.id,
+          weekday: day.weekday,
+          startTime: day.startTime,
+          endTime: day.endTime,
+          isClosed: newIsClosed, // nuevo valor
+        })
+
+        if (result.success) {
+          toast.success("Estado del día actualizado correctamente.")
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el estado del día.")
+        }
+      } catch (error) {
+        toast.error("Error inesperado al actualizar el estado del día.")
+      }
+    })
   }
 
   return (
@@ -140,20 +128,21 @@ function OperatingDays() {
       </label>
 
       {/* Iteramos sobre el array de días y creamos una fila para cada uno */}
-      {daysConfig.map((day) => {
-        const schedule = schedules[day.id]
+      {schedules.map((schedule) => {
         return (
           <DayScheduleRow
-            key={day.id}
-            dayName={day.name}
-            toggleId={`toggle-${day.id}`}
+            key={schedule.id}
+            // Usamos dayjs para convertir el número del día a su nombre en español 0 al 6 (domingo al sábado)
+            dayName={dayjs().day(schedule.weekday).locale('es').format('dddd')}
+            toggleId={`toggle-${schedule.id}`}
             startTime={schedule.startTime}
             endTime={schedule.endTime}
-            isEnabled={schedule.enabled}
-            isDisabled={!schedule.enabled}
-            onStartTimeChange={(value) => handleStartTimeChange(day.id, value)}
-            onEndTimeChange={(value) => handleEndTimeChange(day.id, value)}
-            onToggleChange={(checked) => handleToggleChange(day.id, checked)}
+            isEnabled={!schedule.isClosed}
+            isDisabled={schedule.isClosed}
+            isPending={isPending}
+            onStartTimeChange={(value) => handleStartTimeChange(schedule.id, value)}
+            onEndTimeChange={(value) => handleEndTimeChange(schedule.id, value)}
+            onToggleChange={(checked) => handleToggleChange(schedule.id, checked)}
           />
         )
       })}

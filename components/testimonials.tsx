@@ -22,14 +22,14 @@ const testimonialsData: Testimonial[] = [
     authorImageAlt: "Foto de perfil de Mateo"
   },
   {
-    quote: "Reservé 'La Experiencia Completa' antes de mi boda. Servicio increíble. El afeitado con toalla caliente es algo que hay que probar.",
-    authorName: "Lucas M.",
+    quote: "Buena barbería! Hace el corte como lo pedís!",
+    authorName: "Juan Pablo P.",
     authorRole: "Cliente Verificado",
     authorImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuCw44rfM43pNT5xHQYbXqOTA407I57QfFcatmDSyY0U0RhwqtzHQm-lNbNMpl6z_gcoZR3PVUlgkUPkZM_XKH8DxE3DqivFgQOXlE6tj23lrbUnSmb5bEKRlQ2tlXM0eHSqKbVxatF5aALRnPZMvoWGc7ESYDghjVRMtVN3c8cwtaGU-Wbybe9aTE2dxHqxTdQcRvs637PH69F90jHjzwUffZje2KquSb1aicRmNUknMvU6iSr4T2Z3YGPrasoegSpZrRP_yOZTViP9",
-    authorImageAlt: "Foto de perfil de Lucas"
+    authorImageAlt: "Foto de perfil de Juan Pablo"
   },
   {
-    quote: "Buen ambiente, buena música y cortes aún mejores. CABULL es el único lugar en el que confío para mi barba.",
+    quote: "Muy buen corte y atención",
     authorName: "Santiago V.",
     authorRole: "Guía Local",
     authorImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA4sJ55aJvCeFtAq1l0epHytw2eE9duXn7hnxS7K7svJYu03DS_andNzz-jq1o4PCqNd6qBf0PH20MmLzGjlW-97micdWxe5Tili5uFuH3VRPElvN0rd3YBSyU5b_UoNtFo72n8cmwX1zW6FkhccPu6eXV1Yhb8RiPbeLAd0oRnDz6RdgtBSYgICZPV9y7V3QAVz9aQ4WqZdWLnqtZ50KMVdlbjvziFWY6k3Arvsq67Zc1j45_WYDl9Git6mNz_3dupYqHQbMiB9HRB",

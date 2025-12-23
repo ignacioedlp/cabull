@@ -6,8 +6,11 @@ import AdminMobileHeader from '@/components/admin/admin-mobile-header'
 import AdminPageHeader from '@/components/admin/admin-page-header'
 import { CalendarIcon } from 'lucide-react'
 import { Metadata } from 'next'
-import DayPicker from '@/components/day-picker'
+import BookingsDayPicker from '@/components/admin/bookings-day-picker'
 import { SidebarProvider } from '@/context/sidebar-context'
+import dayjs from 'dayjs'
+import { getAppointmentsForDay } from '@/actions/appointments'
+import 'dayjs/locale/es'
 
 export const metadata: Metadata = {
   title: "CABULL | Clientes",
@@ -20,7 +23,20 @@ export const metadata: Metadata = {
   },
 }
 
-function ClientPgae() {
+interface BookingsPageProps {
+  searchParams: Promise<{
+    day?: string
+  }>
+}
+
+async function BookingsPage({ searchParams }: BookingsPageProps) {
+  const params = await searchParams
+
+  // Parse search params with defaults
+  const dayParam = params.day || dayjs().format('YYYY-MM-DD')
+
+  const { success, appointments } = await getAppointmentsForDay(dayParam)
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
@@ -30,15 +46,15 @@ function ClientPgae() {
           <div className="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full space-y-8">
             <AdminPageHeader
               title="Programación Diaria"
-              subtitle="Martes, 24 de Octubre"
+              subtitle={dayjs(dayParam).locale('es').format('dddd, DD [de] MMMM')}
               icon={CalendarIcon}
               actions={
-                <DayPicker />
+                <BookingsDayPicker day={dayParam} />
               }
             />
-            <BookingsCards />
-            <BookingsProgress />
-            <BookingsTimeline />
+            <BookingsCards appointments={appointments} />
+            <BookingsProgress appointments={appointments} />
+            <BookingsTimeline appointments={appointments} />
           </div>
         </main>
       </div>
@@ -46,4 +62,4 @@ function ClientPgae() {
   )
 }
 
-export default ClientPgae
+export default BookingsPage

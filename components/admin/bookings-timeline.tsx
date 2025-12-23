@@ -1,182 +1,356 @@
 "use client"
 
 import { Button } from '../ui/button'
-import { CheckIcon, ScissorsIcon, ScanFace, CoffeeIcon, CheckCircleIcon, BrushIcon, Trash2Icon, ClockIcon } from 'lucide-react'
+import { CheckIcon, ScissorsIcon, ScanFace, CoffeeIcon, CheckCircleIcon, BrushIcon, Trash2Icon, ClockIcon, UserRoundIcon, PlayIcon, TimerIcon } from 'lucide-react'
+import { AppointmentStatus } from '@/lib/generated/prisma/enums'
+import TimelineRow from './timeline-row'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+import { useTransition, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { startAppointment, completeAppointment, cancelAppointment, confirmAppointmentByAdmin } from '@/actions/appointments'
 
-function BookingsTimeline() {
+// Extender dayjs con los plugins necesarios
+// utc debe extenderse antes que timezone
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+// Función helper para obtener la configuración visual según el estado de la cita
+// Ahora recibe el appointmentId y los handlers para los botones
+function getAppointmentConfig(
+  status: AppointmentStatus,
+  appointmentId: string,
+  onStart: (id: string) => void,
+  onComplete: (id: string) => void,
+  onCancel: (id: string) => void,
+  onConfirm: (id: string) => void,
+  processingId: string | null
+) {
+  // Verificar si esta cita específica está siendo procesada
+  const isPending = processingId === appointmentId
+  switch (status) {
+    case AppointmentStatus.COMPLETED:
+      return {
+        circleContent: 'icon' as const,
+        icon: CheckIcon,
+        circleBgColor: 'bg-primary',
+        statusConfig: {
+          label: 'Completado',
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-700',
+          darkBgColor: 'dark:bg-green-900/30',
+          darkTextColor: 'dark:text-green-400',
+        },
+        isCompleted: true,
+        showLeftBorder: true,
+        leftBorderColor: 'primary' as const,
+        opacityOnHover: true,
+        buttons: (
+          <Button variant="outline" disabled>
+            Completado
+          </Button>
+        ),
+      }
+
+    case AppointmentStatus.IN_PROGRESS:
+      return {
+        circleContent: 'icon' as const,
+        icon: UserRoundIcon,
+        circleBgColor: 'bg-primary',
+        statusConfig: {
+          label: 'En Silla',
+          bgColor: 'bg-blue-100',
+          textColor: 'text-blue-700',
+          darkBgColor: 'dark:bg-blue-900/30',
+          darkTextColor: 'dark:text-blue-400',
+        },
+        showLeftBorder: true,
+        leftBorderColor: 'primary' as const,
+        buttons: (
+          <Button
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-primary hover:bg-[#505050] text-sm font-bold transition-all shadow-md active:scale-95"
+            onClick={() => onComplete(appointmentId)}
+            disabled={isPending}
+          >
+            <CheckCircleIcon className="size-4" />
+            {isPending ? 'Completando...' : 'Marcar Completado'}
+          </Button>
+        ),
+      }
+
+    case AppointmentStatus.CONFIRMED:
+      return {
+        circleContent: 'icon' as const,
+        icon: UserRoundIcon,
+        circleBgColor: 'bg-primary',
+        buttons: (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => onStart(appointmentId)}
+              disabled={isPending}
+            >
+              <PlayIcon className="size-4" />
+              {isPending ? 'Iniciando...' : 'Comenzar'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onCancel(appointmentId)}
+              disabled={isPending}
+            >
+              <Trash2Icon className="size-4 text-destructive" />
+            </Button>
+          </>
+        ),
+      }
+
+    case AppointmentStatus.PENDING_CONFIRMATION:
+      return {
+        circleContent: 'icon' as const,
+        icon: TimerIcon,
+        circleBgColor: 'bg-primary/80',
+        statusConfig: {
+          label: 'Pendiente de Confirmación',
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-700',
+          darkBgColor: 'dark:bg-yellow-900/30',
+          darkTextColor: 'dark:text-yellow-400',
+        },
+        buttons: (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => onConfirm(appointmentId)}
+              disabled={isPending}
+            >
+              <CheckCircleIcon className="size-4" />
+              {isPending ? 'Confirmando...' : 'Confirmar'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onCancel(appointmentId)}
+              disabled={isPending}
+            >
+              <Trash2Icon className="size-4 text-destructive" />
+            </Button>
+          </>
+        ),
+      }
+
+    case AppointmentStatus.CANCELLED:
+      return {
+        circleContent: 'icon' as const,
+        icon: Trash2Icon,
+        circleBgColor: 'bg-primary/80',
+        statusConfig: {
+          label: 'Cancelado',
+          bgColor: 'bg-destructive/10',
+          textColor: 'text-destructive',
+          darkBgColor: 'dark:bg-destructive/30',
+          darkTextColor: 'dark:text-destructive',
+        },
+      }
+
+    default:
+      return {
+        circleContent: 'icon' as const,
+        icon: ClockIcon,
+        circleBgColor: 'bg-background dark:bg-dark-card',
+        buttons: (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => onComplete(appointmentId)}
+              disabled={isPending}
+            >
+              <CheckCircleIcon className="size-4" />
+              {isPending ? 'Completando...' : 'Completar'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onCancel(appointmentId)}
+              disabled={isPending}
+            >
+              <Trash2Icon className="size-4 text-destructive" />
+            </Button>
+          </>
+        ),
+      }
+  }
+}
+
+// Función helper para obtener el ícono del servicio según su nombre
+function getServiceIcon(serviceName: string) {
+  const name = serviceName.toLowerCase()
+  if (name.includes('barba') || name.includes('toalla')) {
+    return ScanFace
+  }
+  if (name.includes('color') || name.includes('resaltado')) {
+    return BrushIcon
+  }
+  return ScissorsIcon // Por defecto, ícono de tijeras
+}
+
+interface Appointment {
+  service: {
+    durationMinutes: number;
+    basePrice: number | null;
+    name: string;
+  };
+  id: string;
+  status: AppointmentStatus;
+  customerEmail: string;
+  serviceId: string;
+  startAt: Date;
+  customer: {
+    name: string | null;
+    email: string;
+  } | null;
+  barber: {
+    name: string | null;
+    email: string;
+  };
+}
+
+function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
+  const [isPending, startTransition] = useTransition()
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const router = useRouter()
+
+  // Handler para iniciar una cita
+  const handleStart = (appointmentId: string) => {
+    setProcessingId(appointmentId)
+    startTransition(async () => {
+      const result = await startAppointment(appointmentId)
+      setProcessingId(null)
+      if (result?.success) {
+        toast.success('Cita iniciada correctamente')
+        router.refresh()
+      } else {
+        toast.error(result?.error || 'Error al iniciar la cita')
+      }
+    })
+  }
+
+  // Handler para completar una cita
+  const handleComplete = (appointmentId: string) => {
+    setProcessingId(appointmentId)
+    startTransition(async () => {
+      const result = await completeAppointment(appointmentId)
+      setProcessingId(null)
+      if (result?.success) {
+        toast.success('Cita completada correctamente')
+        router.refresh()
+      } else {
+        toast.error(result?.error || 'Error al completar la cita')
+      }
+    })
+  }
+
+  // Handler para cancelar una cita
+  const handleCancel = (appointmentId: string) => {
+    setProcessingId(appointmentId)
+    startTransition(async () => {
+      const result = await cancelAppointment(appointmentId)
+      setProcessingId(null)
+      if (result?.success) {
+        toast.success('Cita cancelada correctamente')
+        router.refresh()
+      } else {
+        toast.error(result?.error || 'Error al cancelar la cita')
+      }
+    })
+  }
+
+  // Handler para confirmar una cita desde el admin
+  const handleConfirm = (appointmentId: string) => {
+    setProcessingId(appointmentId)
+    startTransition(async () => {
+      const result = await confirmAppointmentByAdmin(appointmentId)
+      setProcessingId(null)
+      if (result?.success) {
+        toast.success('Turno confirmado correctamente')
+        router.refresh()
+      } else {
+        toast.error(result?.error || 'Error al confirmar el turno')
+      }
+    })
+  }
+
   return (
     <div className="flex flex-col">
       <h3 className="text-lg font-bold mb-6 text-foreground">Cronología</h3>
       <div className="relative">
+        {/* Línea vertical del timeline */}
         <div className="absolute left-[27px] md:left-[27px] top-4 bottom-0 w-px bg-muted"></div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8 group opacity-60 hover:opacity-100 transition-opacity">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-primary text-primary-foreground rounded-full size-14 md:size-14 flex items-center justify-center border-4 border-background-light dark:border-background-dark shadow-sm">
-              <CheckIcon className="size-4" />
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4 bg-background dark:bg-dark-card p-5 rounded-xl border border-muted border-b-2 shadow-sm">
-            <div className="flex flex-col justify-center min-w-[80px] border-l-4 border-primary pl-3 md:border-l-0 md:pl-0 md:border-r md:border-muted md:pr-6">
-              <p className="text-foreground text-lg font-bold">09:00</p>
-              <p className="text-muted-foreground text-sm">AM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-foreground text-lg font-bold line-through decoration-muted-foreground">Juan Pérez</h4>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completado</span>
-              </div>
-              <p className="text-muted-foreground text-sm flex items-center gap-1">
-                <ScissorsIcon className="size-4" />
-                Corte Clásico • 45m
-              </p>
-            </div>
-            <div className="flex items-center md:border-l md:border-muted md:pl-6">
-              <Button variant={"outline"} disabled>
-                Completado
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8 group opacity-60 hover:opacity-100 transition-opacity">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-primary text-primary-foreground rounded-full size-14 flex items-center justify-center border-4 border-background-light dark:border-background-dark shadow-sm">
-              <CheckIcon className="size-4" />
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4  p-5 rounded-xl border border-muted border-b-2 shadow-sm">
-            <div className="flex flex-col justify-center min-w-[80px] border-l-4 border-primary pl-3 md:border-l-0 md:pl-0 md:border-r md:border-muted md:pr-6">
-              <p className="text-foreground text-lg font-bold">10:15</p>
-              <p className="text-muted-foreground text-sm">AM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-foreground text-lg font-bold line-through decoration-muted-foreground">Lucas Rodriguez</h4>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completado</span>
-              </div>
-              <p className="text-muted-foreground text-sm flex items-center gap-1">
-                <ScanFace className="size-4" />
-                Barba y Toalla Caliente • 30m
-              </p>
-            </div>
-            <div className="flex items-center md:border-l md:border-muted md:pl-6">
-              <Button variant={"outline"} disabled>
-                Completado
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-muted text-muted-foreground rounded-full size-14 flex items-center justify-center border-4 border-background-light dark:border-background-dark">
-              <CoffeeIcon className="size-4" />
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4 p-5 rounded-xl border border-dashed border-muted bg-background dark:bg-dark-card">
-            <div className="flex flex-col justify-center min-w-[80px] pl-3 md:pl-0 md:pr-6">
-              <p className="text-foreground text-lg font-bold">11:30</p>
-              <p className="text-muted-foreground text-sm">AM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <h4 className="text-foreground text-lg font-bold">Almuerzo</h4>
-              <p className="text-muted-foreground text-sm">1 hora</p>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-center bg-no-repeat bg-cover rounded-full size-14 border-4 border-primary shadow-md" data-alt="Client Martin Gomez photo" style={{
-              backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDFUAKxdCimcLnyAmqoSV6P_BLMr650699zzCovKDAw_eO8h-ClZqnQS4mf4yYJS-QC5-2dSvwYvLzLxZZ786C-R0oLyOoZlv-ly_zpWO5uzMf-33NA35ODTNlHjedAElexDaWj8k5HjPivZeyfxlNgbsjTkf2_Rr9Njt0IvXkjnh-QfwV51MX9TlZqwjw2g8Okz8wxZQxxeCPR-2qlKoTzdu9V1swAhb3PdxJB4jJ1IMSOPiPSNNKsFS8zaYiJxy4-3DgjWhR4ZUan")'
-            }}></div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4  p-5 rounded-xl border border-muted border-b-2 shadow-sm border-l-4 border-l-primary">
-            <div className="flex flex-col justify-center min-w-[80px] pl-3 md:pl-0 md:border-r md:border-muted md:pr-6">
-              <p className="text-foreground text-lg font-bold">01:00</p>
-              <p className="text-muted-foreground text-sm">PM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-foreground text-lg font-bold">Martin Gomez</h4>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">En Silla</span>
-              </div>
-              <p className="text-muted-foreground text-sm flex items-center gap-1">
-                <ScissorsIcon className="size-4" />
-                Fade y Estilo • 45m
-              </p>
-            </div>
-            <div className="flex items-center md:border-l md:border-muted md:pl-6">
-              <Button className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-primary hover:bg-[#505050] text-sm font-bold transition-all shadow-md active:scale-95">
-                <CheckCircleIcon className="size-4" />
-                Marcar Completado
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-background dark:bg-dark-card rounded-full size-14 flex items-center justify-center border-4 border-background-light dark:border-background-dark">
-              <div
-                className="bg-center bg-no-repeat bg-cover rounded-full size-full"
-                data-alt="Client Julianne photo"
-                style={{
-                  backgroundImage:
-                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAlqIu_1GXzb2YMNd-ow-2075erhywjNdfr5mrqFvZF4X3k-TRHUrsTzLeCsJO_HRca7BFBiveyMKjYHB0S03jcMI-yLtPWrOz7-tmEs-oXc38KVMp8VDmYgliyPg8GaKrRWqqILYDNo66AhVaA1U8Lyjs3XQh_NruMdPqsCM6wu3J2WNSdGRbm_s9aSonHZVFHIWPcPQWgyMH2oSqoaxKF6UlXQj_UfdQA-0us3jcbl-Su_dIxt7VEgevhlmcD-aBSff3P_6o0apCI")',
-                  opacity: 0.8,
-                }}
-              ></div>
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4  dark:bg-dark-card p-5 rounded-xl border border-muted border-b-2 shadow-sm">
-            <div className="flex flex-col justify-center min-w-[80px] border-l-4 border-transparent pl-3 md:border-l-0 md:pl-0 md:border-r md:border-muted md:pr-6">
-              <p className="text-foreground text-lg font-bold">02:00</p>
-              <p className="text-muted-foreground text-sm">PM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-1">
-              <h4 className="text-foreground text-lg font-bold">Julianne Moore</h4>
-              <p className="text-muted-foreground text-sm flex items-center gap-1">
-                <BrushIcon className="size-4" />
-                Color y Resaltados • 2h
-              </p>
-            </div>
-            <div className="flex items-center md:border-l md:border-muted md:pl-6 gap-2">
-              <Button variant={"secondary"} >
-                <CheckCircleIcon className="size-4" />
-                Completar
-              </Button>
-              <Button variant={"ghost"}>
-                <Trash2Icon className="size-4 text-destructive" />
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 pb-8">
-          <div className="flex flex-col items-center pt-1 z-10">
-            <div className="bg-background dark:bg-dark-card text-foreground font-bold text-lg rounded-full size-14 flex items-center justify-center border-4 border-background-light dark:border-background-dark shadow-sm">
-              <ClockIcon className="size-4" />
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row gap-4  dark:bg-dark-card p-5 rounded-xl border border-muted border-b-2 shadow-sm">
-            <div className="flex flex-col justify-center min-w-[80px] border-l-4 border-transparent pl-3 md:border-l-0 md:pl-0 md:border-r md:border-muted md:pr-6">
-              <p className="text-foreground text-lg font-bold">04:15</p>
-              <p className="text-muted-foreground text-sm">PM</p>
-            </div>
-            <div className="flex-1 flex flex-col justify-center gap-1">
-              <h4 className="text-foreground text-lg font-bold">Sam Davis</h4>
-              <p className="text-muted-foreground text-sm flex items-center gap-1">
-                <ScissorsIcon className="size-4" />
-                Corte de Niños • 30m
-              </p>
-            </div>
-            <div className="flex items-center md:border-l md:border-muted md:pl-6 gap-2">
-              <Button variant={"secondary"} >
-                <CheckCircleIcon className="size-4" />
-                Completar
-              </Button>
-              <Button variant={"ghost"}>
-                <Trash2Icon className="size-4 text-destructive" />
-              </Button>
-            </div>
-          </div>
-        </div>
+
+        {appointments?.map((appointment) => {
+          // Formatear la fecha y hora de la cita
+          const appointmentDate = dayjs(appointment.startAt).tz('America/Argentina/Buenos_Aires')
+          const time = appointmentDate.format('HH:mm')
+          const timePeriod = appointmentDate.format('A')
+
+          // Obtener la configuración visual según el estado
+          // Pasamos el appointmentId y los handlers
+          const config = getAppointmentConfig(
+            appointment.status,
+            appointment.id,
+            handleStart,
+            handleComplete,
+            handleCancel,
+            handleConfirm,
+            processingId
+          )
+
+          // Obtener el nombre del cliente (o email si no tiene nombre)
+          const customerName = appointment.customer?.name || appointment.customerEmail || 'Cliente'
+
+          // Obtener el ícono del servicio
+          const ServiceIcon = getServiceIcon(appointment.service.name)
+
+          // Formatear la duración del servicio
+          const durationMinutes = appointment.service.durationMinutes
+          const serviceDuration = durationMinutes >= 60
+            ? `${Math.floor(durationMinutes / 60)}h${durationMinutes % 60 > 0 ? ` ${durationMinutes % 60}m` : ''}`
+            : `${durationMinutes}m`
+
+          // Determinar el tipo de contenido del círculo y la imagen
+          // Por ahora usamos íconos por defecto, pero puedes agregar lógica para imágenes si las tienes
+          let circleContent = config.circleContent
+          let icon = config.icon
+          let circleBgColor = config.circleBgColor
+
+          // Si el estado es IN_PROGRESS o CONFIRMED y queremos usar imagen del cliente
+          // (cuando tengas la imagen en el modelo de datos, puedes descomentar esto)
+          // const customerImageUrl = appointment.customer?.imageUrl
+          // if (customerImageUrl && (appointment.status === AppointmentStatus.IN_PROGRESS || appointment.status === AppointmentStatus.CONFIRMED)) {
+          //   circleContent = appointment.status === AppointmentStatus.IN_PROGRESS ? 'image' : 'nested-image'
+          // }
+
+          return (
+            <TimelineRow
+              key={appointment.id}
+              time={time}
+              timePeriod={timePeriod}
+              circleContent={circleContent}
+              icon={icon}
+              imageAlt={`Cliente ${customerName} photo`}
+              circleBgColor={circleBgColor}
+              customerName={customerName}
+              serviceName={appointment.service.name}
+              serviceIcon={ServiceIcon}
+              serviceDuration={serviceDuration}
+              status={config.statusConfig}
+              isCompleted={config.isCompleted}
+              showLeftBorder={config.showLeftBorder}
+              leftBorderColor={config.leftBorderColor}
+              buttons={config.buttons}
+              opacityOnHover={config.opacityOnHover}
+            />
+          )
+        })}
       </div>
       <div className="flex justify-center mt-4 mb-12">
         <p className="text-muted-foreground text-sm">Fin de las citas programadas</p>

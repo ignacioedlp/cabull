@@ -2,6 +2,7 @@ import { CircleCheck } from 'lucide-react'
 import React from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
+import { getServices } from '@/actions/services'
 
 // Define the type for service data
 interface Service {
@@ -21,32 +22,13 @@ function formatPriceARS(price: number): string {
   }).format(price)
 }
 
-// Service data array - all service information in one place
-const servicesData: Service[] = [
-  {
-    title: 'Corte Clásico',
-    price: 25000,
-    features: ['Consulta de Estilo', 'Corte Preciso', 'Corte de Cuello y Estilo']
-  },
-  {
-    title: 'Escultura de Barba',
-    price: 15000,
-    features: ['Tratamiento con Toalla Caliente', 'Linea de Rasuradora', 'Aceite de Barba Premium']
-  },
-  {
-    title: 'Experiencia Completa',
-    price: 45000,
-    features: ['Corte Completo', 'Afeitado y Forma de Barba', 'Masaje Facial y Lavado'],
-    isPopular: true
-  }
-]
-
 // Reusable ServiceCard component
 interface ServiceCardProps {
   service: Service
 }
 
 function ServiceCard({ service }: ServiceCardProps) {
+
   // Determine card styles based on whether it's popular
   const cardClasses = service.isPopular
     ? 'flex flex-col gap-6 border-2 border-primary/20 bg-background relative overflow-hidden'
@@ -90,7 +72,10 @@ function ServiceCard({ service }: ServiceCardProps) {
   )
 }
 
-function Services() {
+async function Services() {
+
+  const { services } = await getServices()
+
   return (
     <section className="py-12 md:py-20 border-y border-muted" id="servicios">
       <div className="layout-container flex h-full grow flex-col">
@@ -102,8 +87,13 @@ function Services() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
               {/* Map through services data to render each service card */}
-              {servicesData.map((service, index) => (
-                <ServiceCard key={index} service={service} />
+              {services.map((service, index) => (
+                <ServiceCard key={index} service={{
+                  title: service.name,
+                  price: service.basePrice || 0,
+                  features: service.features || [],
+                  isPopular: false
+                } as Service} />
               ))}
             </div>
           </div>
