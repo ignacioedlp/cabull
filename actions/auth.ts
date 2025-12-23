@@ -43,7 +43,7 @@ export async function logout() {
     try {
       const cookieStore = await cookies()
       cookieStore.delete("session_token")
-    } catch (e) {
+    } catch {
       // Ignorar errores al eliminar la cookie
     }
     return { success: false, error: "Error al cerrar sesión" }

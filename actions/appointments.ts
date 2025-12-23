@@ -3,8 +3,9 @@
 import { prisma } from "@/lib/prisma"
 import { AppointmentStatus } from "@/lib/generated/prisma/enums"
 import dayjs from "dayjs"
-import crypto, { hash } from "crypto"
+import crypto from "crypto"
 import { headers } from "next/headers"
+import { Prisma } from "@/lib/generated/prisma/client"
 import { Resend } from "resend"
 import ConfirmAppointmentEmail from "@/components/emails/booking-confirmation"
 
@@ -37,7 +38,7 @@ async function getClientIP(): Promise<string> {
     // Si no se puede obtener la IP, retornar "unknown"
     // Esto puede pasar en desarrollo local
     return "unknown"
-  } catch (error) {
+  } catch {
     // En caso de error, retornar "unknown"
     return "unknown"
   }
@@ -88,7 +89,7 @@ export const getAppointmentsForDay = async (date: string | Date) => {
       },
     })
     return { success: true, appointments }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los turnos para el día", appointments: [] }
   }
 }
@@ -154,7 +155,7 @@ export const getAvailableTimeSlots = async (date: string | Date) => {
     }
 
     return { success: true, slots }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los horarios disponibles", slots: [] }
   }
 }
@@ -294,9 +295,9 @@ export const createAppointment = async (data: {
     }
 
     return { success: true, appointment }
-  } catch (error: any) {
+  } catch (error) {
     // Manejar error de horario duplicado
-    if (error.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Ya existe un turno para este horario", appointment: null }
     }
     return { success: false, error: "Error al crear el turno", appointment: null }
@@ -392,7 +393,7 @@ export const confirmAppointment = async (token: string) => {
     })
 
     return { success: true, error: null, appointment: updatedAppointment }
-  } catch (error: any) {
+  } catch {
     return { success: false, error: "Error al confirmar la reserva", appointment: null }
   }
 }
@@ -491,7 +492,7 @@ export const confirmAppointmentByAdmin = async (appointmentId: string) => {
     })
 
     return { success: true, error: null, appointment: updatedAppointment }
-  } catch (error: any) {
+  } catch {
     return { success: false, error: "Error al confirmar el turno", appointment: null }
   }
 }
@@ -503,7 +504,7 @@ export const startAppointment = async (appointmentId: string) => {
       data: { status: AppointmentStatus.IN_PROGRESS },
     })
     return { success: true, appointment }
-  } catch (error: any) {
+  } catch {
     return { success: false, error: "Error al iniciar el turno", appointment: null }
   }
 }
@@ -515,7 +516,7 @@ export const completeAppointment = async (appointmentId: string) => {
       data: { status: AppointmentStatus.COMPLETED },
     })
     return { success: true, appointment }
-  } catch (error: any) {
+  } catch {
     return { success: false, error: "Error al completar el turno", appointment: null }
   }
 }
@@ -527,7 +528,7 @@ export const cancelAppointment = async (appointmentId: string) => {
       data: { status: AppointmentStatus.CANCELLED },
     })
     return { success: true, appointment }
-  } catch (error: any) {
+  } catch {
     return { success: false, error: "Error al cancelar el turno", appointment: null }
   }
 }

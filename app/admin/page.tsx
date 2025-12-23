@@ -1,7 +1,7 @@
 import Sidebar from '@/components/admin/sidebar'
 import AdminMobileHeader from '@/components/admin/admin-mobile-header'
 import AdminPageHeader from '@/components/admin/admin-page-header'
-import { HomeIcon, CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, ArrowRightIcon, ClockIcon, DollarSignIcon } from 'lucide-react'
+import { HomeIcon, CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, ArrowRightIcon } from 'lucide-react'
 import { Metadata } from 'next'
 import { SidebarProvider } from '@/context/sidebar-context'
 import { getDashboardStats } from '@/actions/dashboard'

@@ -136,7 +136,7 @@ export async function verifyMagicLink(token: string, email: string) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 días
 
     // Crear la sesión
-    const session = await prisma.session.create({
+    await prisma.session.create({
       data: {
         userId: adminUser.id,
         token: sessionToken,

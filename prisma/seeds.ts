@@ -9,7 +9,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Crear un owner (propietario del negocio)
-  const owner = await prisma.adminUser.upsert({
+  await prisma.adminUser.upsert({
     where: { email: 'owner@cabull.com' },
     update: {},
     create: {
@@ -21,7 +21,7 @@ async function main() {
   })
 
   // Crear un barbero
-  const barber = await prisma.adminUser.upsert({
+  await prisma.adminUser.upsert({
     where: { email: 'barber@cabull.com' },
     update: {},
     create: {
@@ -64,7 +64,7 @@ async function main() {
   }
 
   // Crear dos servicios
-  const service1 = await prisma.service.upsert({
+  await prisma.service.upsert({
     where: { id: 'service-corte-basico' },
     update: {},
     create: {
@@ -77,7 +77,7 @@ async function main() {
     },
   })
 
-  const service2 = await prisma.service.upsert({
+  await prisma.service.upsert({
     where: { id: 'service-corte-barba' },
     update: {},
     create: {

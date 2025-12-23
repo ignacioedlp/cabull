@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { MenuIcon, Scissors, XIcon } from "lucide-react"
+import { MenuIcon, XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import Image from "next/image"
@@ -15,7 +15,6 @@ interface NavItem {
 
 // Props del componente Navbar
 interface NavbarProps {
-  logo?: React.ReactNode // Permite pasar un logo personalizado
   items?: NavItem[] // Items del menú de navegación
   buttonLabel?: string // Texto del botón
   buttonHref?: string // URL del botón (opcional)
@@ -24,7 +23,6 @@ interface NavbarProps {
 }
 
 export function Navbar({
-  logo,
   items = [
     { label: "Nosotros", href: "/#nosotros" },
     { label: "Servicios", href: "/#servicios" },

@@ -1,13 +1,13 @@
 "use client"
 
 import { Button } from '../ui/button'
-import { CheckIcon, ScissorsIcon, ScanFace, CoffeeIcon, CheckCircleIcon, BrushIcon, Trash2Icon, ClockIcon, UserRoundIcon, PlayIcon, TimerIcon } from 'lucide-react'
+import { CheckIcon, ScissorsIcon, ScanFace, CheckCircleIcon, BrushIcon, Trash2Icon, ClockIcon, UserRoundIcon, PlayIcon, TimerIcon } from 'lucide-react'
 import { AppointmentStatus } from '@/lib/generated/prisma/enums'
 import TimelineRow from './timeline-row'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { useTransition, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { startAppointment, completeAppointment, cancelAppointment, confirmAppointmentByAdmin } from '@/actions/appointments'
@@ -215,14 +215,13 @@ interface Appointment {
 }
 
 function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
-  const [isPending, startTransition] = useTransition()
   const [processingId, setProcessingId] = useState<string | null>(null)
   const router = useRouter()
 
   // Handler para iniciar una cita
-  const handleStart = (appointmentId: string) => {
+  const handleStart = async (appointmentId: string) => {
     setProcessingId(appointmentId)
-    startTransition(async () => {
+    try {
       const result = await startAppointment(appointmentId)
       setProcessingId(null)
       if (result?.success) {
@@ -231,13 +230,16 @@ function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
       } else {
         toast.error(result?.error || 'Error al iniciar la cita')
       }
-    })
+    } catch (error) {
+      setProcessingId(null)
+      toast.error('Error al iniciar la cita')
+    }
   }
 
   // Handler para completar una cita
-  const handleComplete = (appointmentId: string) => {
+  const handleComplete = async (appointmentId: string) => {
     setProcessingId(appointmentId)
-    startTransition(async () => {
+    try {
       const result = await completeAppointment(appointmentId)
       setProcessingId(null)
       if (result?.success) {
@@ -246,13 +248,16 @@ function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
       } else {
         toast.error(result?.error || 'Error al completar la cita')
       }
-    })
+    } catch (error) {
+      setProcessingId(null)
+      toast.error('Error al completar la cita')
+    }
   }
 
   // Handler para cancelar una cita
-  const handleCancel = (appointmentId: string) => {
+  const handleCancel = async (appointmentId: string) => {
     setProcessingId(appointmentId)
-    startTransition(async () => {
+    try {
       const result = await cancelAppointment(appointmentId)
       setProcessingId(null)
       if (result?.success) {
@@ -261,13 +266,16 @@ function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
       } else {
         toast.error(result?.error || 'Error al cancelar la cita')
       }
-    })
+    } catch (error) {
+      setProcessingId(null)
+      toast.error('Error al cancelar la cita')
+    }
   }
 
   // Handler para confirmar una cita desde el admin
-  const handleConfirm = (appointmentId: string) => {
+  const handleConfirm = async (appointmentId: string) => {
     setProcessingId(appointmentId)
-    startTransition(async () => {
+    try {
       const result = await confirmAppointmentByAdmin(appointmentId)
       setProcessingId(null)
       if (result?.success) {
@@ -276,7 +284,10 @@ function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
       } else {
         toast.error(result?.error || 'Error al confirmar el turno')
       }
-    })
+    } catch (error) {
+      setProcessingId(null)
+      toast.error('Error al confirmar el turno')
+    }
   }
 
   return (
@@ -318,9 +329,9 @@ function BookingsTimeline({ appointments }: { appointments: Appointment[] }) {
 
           // Determinar el tipo de contenido del círculo y la imagen
           // Por ahora usamos íconos por defecto, pero puedes agregar lógica para imágenes si las tienes
-          let circleContent = config.circleContent
-          let icon = config.icon
-          let circleBgColor = config.circleBgColor
+          const circleContent = config.circleContent
+          const icon = config.icon
+          const circleBgColor = config.circleBgColor
 
           // Si el estado es IN_PROGRESS o CONFIRMED y queremos usar imagen del cliente
           // (cuando tengas la imagen en el modelo de datos, puedes descomentar esto)

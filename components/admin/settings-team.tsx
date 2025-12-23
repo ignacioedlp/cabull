@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
-import { Checkbox } from '../ui/checkbox'
 import {
   Sheet,
   SheetClose,
@@ -214,7 +213,7 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
           // Mostrar mensaje de error
           toast.error(result.error || "Ocurrió un error al guardar el miembro del equipo.")
         }
-      } catch (error) {
+      } catch {
         // Error inesperado
         toast.error("Error inesperado al guardar el miembro del equipo.")
       }
@@ -246,7 +245,7 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
           toast.error(result.error || "Ocurrió un error al eliminar el miembro del equipo.")
           setDeleteDialogOpen(false)
         }
-      } catch (error) {
+      } catch {
         // Error inesperado
         toast.error("Error inesperado al eliminar el miembro del equipo.")
         setDeleteDialogOpen(false)
@@ -270,7 +269,7 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
         } else {
           toast.error(result.error || "Ocurrió un error al actualizar el estado del miembro.")
         }
-      } catch (error) {
+      } catch {
         toast.error("Error inesperado al actualizar el estado del miembro.")
       }
     })

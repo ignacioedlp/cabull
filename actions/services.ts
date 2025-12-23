@@ -26,7 +26,7 @@ export const getServices = async (onlyActive: boolean = true) => {
     })
 
     return { success: true, services }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los servicios", services: [] }
   }
 }
@@ -53,7 +53,7 @@ export const updateService = async (service: {
       },
     })
     return { success: true, service: updatedService }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar el servicio", service: null }
   }
 }
@@ -78,7 +78,7 @@ export const createService = async (service: {
       },
     })
     return { success: true, service: newService }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al crear el servicio", service: null }
   }
 }
@@ -89,7 +89,7 @@ export const deleteService = async (id: string) => {
       where: { id: id },
     })
     return { success: true, service: deletedService }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al eliminar el servicio", service: null }
   }
 }

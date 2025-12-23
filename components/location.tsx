@@ -1,5 +1,4 @@
-import { ArrowRightIcon, ClockIcon, MapPinIcon, PhoneIcon } from 'lucide-react'
-import { Button } from './ui/button'
+import { ClockIcon, MapPinIcon, PhoneIcon } from 'lucide-react'
 
 function Location() {
   return (

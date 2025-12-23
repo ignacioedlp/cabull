@@ -45,7 +45,7 @@ function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
         } else {
           toast.error(result.error || "Ocurrió un error al actualizar el horario de inicio.")
         }
-      } catch (error) {
+      } catch {
         toast.error("Error inesperado al actualizar el horario de inicio.")
       }
     })
@@ -78,7 +78,7 @@ function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
         } else {
           toast.error(result.error || "Ocurrió un error al actualizar el horario de fin.")
         }
-      } catch (error) {
+      } catch {
         toast.error("Error inesperado al actualizar el horario de fin.")
       }
     })
@@ -114,7 +114,7 @@ function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
         } else {
           toast.error(result.error || "Ocurrió un error al actualizar el estado del día.")
         }
-      } catch (error) {
+      } catch {
         toast.error("Error inesperado al actualizar el estado del día.")
       }
     })

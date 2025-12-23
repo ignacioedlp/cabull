@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import DayPicker from '@/components/day-picker'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 
 /**
  * BookingsDayPicker Component

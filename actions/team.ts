@@ -2,6 +2,7 @@
 
 import { AdminRole } from "@/lib/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/lib/generated/prisma/client"
 
 // Get all active team members, sorted by name
 export const getTeam = async () => {
@@ -14,7 +15,7 @@ export const getTeam = async () => {
       },
     })
     return { success: true, team: team }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener el equipo", team: [] }
   }
 }
@@ -38,9 +39,9 @@ export const createTeamMember = async (teamMember: {
       },
     })
     return { success: true, teamMember: newTeamMember }
-  } catch (error: any) {
+  } catch (error) {
     // Manejar error de email duplicado
-    if (error.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Ya existe un miembro del equipo con este email", teamMember: null }
     }
     return { success: false, error: "Error al crear el miembro del equipo", teamMember: null }
@@ -68,9 +69,9 @@ export const updateTeamMember = async (teamMember: {
       },
     })
     return { success: true, teamMember: updatedTeamMember }
-  } catch (error: any) {
+  } catch (error) {
     // Manejar error de email duplicado
-    if (error.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Ya existe un miembro del equipo con este email", teamMember: null }
     }
     return { success: false, error: "Error al actualizar el miembro del equipo", teamMember: null }
@@ -84,7 +85,7 @@ export const updateTeamMemberActive = async (id: string, active: boolean) => {
       data: { active },
     })
     return { success: true, teamMember: updatedTeamMember }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar el estado del miembro", teamMember: null }
   }
 }
@@ -95,7 +96,7 @@ export const deleteTeamMember = async (id: string) => {
       where: { id },
     })
     return { success: true, teamMember: deletedTeamMember }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al eliminar el miembro del equipo", teamMember: null }
   }
 }

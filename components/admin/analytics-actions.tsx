@@ -8,8 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { DownloadIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import dayjs from "dayjs"
 
@@ -107,11 +105,6 @@ function AnalyticsActions({ month, year }: { month: string, year: string }) {
           </SelectGroup>
         </SelectContent>
       </Select>
-
-      <Button variant="default" >
-        <DownloadIcon className="size-4" />
-        <span>Exportar Reporte</span>
-      </Button>
     </div>
   )
 }

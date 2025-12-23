@@ -1,8 +1,6 @@
 import AnalyticsCards from '@/components/admin/analytics-cards'
 import AnalyticsCharts from '@/components/admin/analytics-charts'
-import Reviews from '@/components/admin/reviews'
 import Sidebar from '@/components/admin/sidebar'
-import TopBarbers from '@/components/admin/top-barbers'
 import AdminMobileHeader from '@/components/admin/admin-mobile-header'
 import AdminPageHeader from '@/components/admin/admin-page-header'
 import { BarChartIcon } from 'lucide-react'

@@ -4,6 +4,7 @@
 
 import { UserType, AppointmentStatus } from "@/lib/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@/lib/generated/prisma/client"
 
 // Get all clients, sorted by name always, but i could filter by name, email and user type, and always paginated, and return the total count of clients
 export const getClients = async (
@@ -22,7 +23,7 @@ export const getClients = async (
   const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) // 30 days ago (1 month)
 
   // Build the where clause for appointment filtering
-  let appointmentFilter: any = undefined
+  let appointmentFilter: Prisma.UserWhereInput['appointments'] | undefined = undefined
 
   if (filter.activityFilter === "recent") {
     // Visitantes recientes: tienen al menos un turno en los últimos 15 días
@@ -53,7 +54,7 @@ export const getClients = async (
   }
 
   // Build the where clause
-  const whereClause: any = {
+  const whereClause: Prisma.UserWhereInput = {
     name: filter.name ? { contains: filter.name, mode: "insensitive" } : undefined,
     email: filter.email ? { contains: filter.email, mode: "insensitive" } : undefined,
     userType: filter.userType ? { equals: filter.userType as UserType } : undefined,
@@ -65,19 +66,18 @@ export const getClients = async (
   }
 
   // Remove undefined values from where clause
-  Object.keys(whereClause).forEach((key) => {
-    if (whereClause[key] === undefined) {
-      delete whereClause[key]
-    }
-  })
+  // Create a new object with only defined properties to avoid TypeScript errors
+  const cleanedWhereClause: Prisma.UserWhereInput = Object.fromEntries(
+    Object.entries(whereClause).filter(([_, value]) => value !== undefined)
+  ) as Prisma.UserWhereInput
 
   // Get total count before pagination
   const total = await prisma.user.count({
-    where: whereClause,
+    where: cleanedWhereClause,
   })
 
   // Build appointments include filter
-  const appointmentsIncludeFilter: any = {
+  const appointmentsIncludeFilter: Prisma.AppointmentWhereInput = {
     status: {
       in: [AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED, AppointmentStatus.IN_PROGRESS],
     },
@@ -93,7 +93,7 @@ export const getClients = async (
 
   // Get paginated clients with their appointments info
   const clients = await prisma.user.findMany({
-    where: whereClause,
+    where: cleanedWhereClause,
     include: {
       preferredService: {
         select: {
@@ -161,9 +161,9 @@ export const createClient = async (clientData: {
     })
 
     return { success: true, client }
-  } catch (error: any) {
+  } catch (error) {
     // Handle unique constraint violation (duplicate email)
-    if (error.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Ya existe un cliente con este email" }
     }
     return { success: false, error: "Error al crear el cliente" }
@@ -199,13 +199,13 @@ export const updateClient = async (clientData: {
     })
 
     return { success: true, client }
-  } catch (error: any) {
+  } catch (error) {
     // Handle unique constraint violation (duplicate email)
-    if (error.code === "P2002") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { success: false, error: "Ya existe un cliente con este email" }
     }
     // Handle record not found
-    if (error.code === "P2025") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       return { success: false, error: "Cliente no encontrado" }
     }
     return { success: false, error: "Error al actualizar el cliente" }
@@ -220,13 +220,13 @@ export const deleteClient = async (id: string) => {
     })
 
     return { success: true }
-  } catch (error: any) {
+  } catch (error) {
     // Handle record not found
-    if (error.code === "P2025") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       return { success: false, error: "Cliente no encontrado" }
     }
     // Handle foreign key constraint (if client has appointments)
-    if (error.code === "P2003") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
       return { success: false, error: "No se puede eliminar el cliente porque tiene citas asociadas" }
     }
     return { success: false, error: "Error al eliminar el cliente" }

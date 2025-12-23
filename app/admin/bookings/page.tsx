@@ -35,7 +35,7 @@ async function BookingsPage({ searchParams }: BookingsPageProps) {
   // Parse search params with defaults
   const dayParam = params.day || dayjs().format('YYYY-MM-DD')
 
-  const { success, appointments } = await getAppointmentsForDay(dayParam)
+  const { appointments } = await getAppointmentsForDay(dayParam)
 
   return (
     <SidebarProvider>

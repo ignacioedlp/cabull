@@ -9,7 +9,6 @@
 import { prisma } from "@/lib/prisma"
 import { AppointmentStatus } from "@/lib/generated/prisma/enums"
 import dayjs from "dayjs"
-import { Appointment } from "@/lib/generated/prisma/client"
 
 // Tipo para los appointments del mes actual (incluye customer)
 type CurrentMonthAppointment = {

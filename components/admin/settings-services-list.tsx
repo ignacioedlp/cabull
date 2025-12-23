@@ -307,7 +307,7 @@ function SettingsServicesList({ services }: { services: Service[] | undefined })
           // Mostrar mensaje de error
           toast.error(result.error || "Ocurrió un error al guardar el servicio.")
         }
-      } catch (error) {
+      } catch {
         // Error inesperado
         toast.error("Error inesperado al guardar el servicio.")
       }
@@ -339,7 +339,7 @@ function SettingsServicesList({ services }: { services: Service[] | undefined })
           toast.error(result.error || "Ocurrió un error al eliminar el servicio.")
           setDeleteDialogOpen(false)
         }
-      } catch (error) {
+      } catch {
         // Error inesperado
         toast.error("Error inesperado al eliminar el servicio.")
         setDeleteDialogOpen(false)

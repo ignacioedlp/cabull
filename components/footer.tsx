@@ -1,4 +1,4 @@
-import { MapPinIcon, PhoneIcon, MailIcon, ScissorsIcon, Instagram, InstagramIcon } from 'lucide-react'
+import { MapPinIcon, PhoneIcon, InstagramIcon } from 'lucide-react'
 import Link from 'next/link'
 import { ModeToggle } from './mode-toggle'
 import Image from 'next/image'

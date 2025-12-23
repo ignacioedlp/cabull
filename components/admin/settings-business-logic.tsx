@@ -55,7 +55,7 @@ function SettingsBusinessLogic({
           // Error controlado desde el server action
           toast.error(result.error || "Ocurrió un error al actualizar la ventana de reservas.")
         }
-      } catch (error) {
+      } catch {
         // Error inesperado
         toast.error("Error inesperado al actualizar la ventana de reservas.")
       }
@@ -84,7 +84,7 @@ function SettingsBusinessLogic({
         } else {
           toast.error(result.error || "Ocurrió un error al actualizar el intervalo de citas.")
         }
-      } catch (error) {
+      } catch {
         toast.error("Error inesperado al actualizar el intervalo de citas.")
       }
     })

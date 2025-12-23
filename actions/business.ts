@@ -8,7 +8,7 @@ export const getBusinessRules = async () => {
   try {
     const businessRules = await prisma.businessRules.findFirst()
     return { success: true, businessRules }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener las reglas de negocio", businessRules: null }
   }
 }
@@ -24,7 +24,7 @@ export const updateBusinessRules = async (businessRules: {
       data: businessRules,
     })
     return { success: true, businessRules: updatedBusinessRules }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar las reglas de negocio", businessRules: null }
   }
 }
@@ -34,7 +34,7 @@ export const getBusinessHours = async () => {
   try {
     const businessHours = await prisma.businessHours.findMany()
     return { success: true, businessHours }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los horarios de negocio", businessHours: null }
   }
 }
@@ -53,7 +53,7 @@ export const updateBusinessHours = async (businessHours: {
       data: businessHours,
     })
     return { success: true, businessHours: updatedBusinessHours }
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar los horarios de negocio", businessHours: null }
   }
 }

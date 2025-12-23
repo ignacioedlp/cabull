@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
-import { ScissorsIcon, MessageCircleIcon, EditIcon, UserPlusIcon, TrashIcon, CalendarClockIcon, Loader2Icon } from 'lucide-react'
+import { ScissorsIcon, EditIcon, UserPlusIcon, TrashIcon, CalendarClockIcon, Loader2Icon } from 'lucide-react'
 import { createClient, updateClient, deleteClient } from '@/actions/clients'
 import { getServices } from '@/actions/services'
 import DayPicker from '../day-picker'
@@ -381,7 +381,7 @@ function ClientsList({ clients: clientsFromDB, isLoading = false }: ClientsListP
     }
 
     loadTimeSlots()
-  }, [bookingFormData.selectedDate, isBookingSheetOpen])
+  }, [bookingFormData.selectedDate, bookingFormData.selectedHour, isBookingSheetOpen])
 
   // Manejar cambio de fecha
   const handleDateChange = (date: Dayjs) => {
@@ -434,7 +434,7 @@ function ClientsList({ clients: clientsFromDB, isLoading = false }: ClientsListP
       } else {
         toast.error(result.error || "Error al crear el turno")
       }
-    } catch (error) {
+    } catch {
       toast.error("Error inesperado al crear el turno")
     } finally {
       setIsSubmittingBooking(false)
@@ -529,7 +529,7 @@ function ClientsList({ clients: clientsFromDB, isLoading = false }: ClientsListP
           // Show error message
           setError(result.error || "Error al guardar el cliente")
         }
-      } catch (err) {
+      } catch {
         setError("Error inesperado al guardar el cliente")
       }
     })
@@ -560,7 +560,7 @@ function ClientsList({ clients: clientsFromDB, isLoading = false }: ClientsListP
           setError(result.error || "Error al eliminar el cliente")
           setDeleteDialogOpen(false)
         }
-      } catch (err) {
+      } catch {
         setError("Error inesperado al eliminar el cliente")
         setDeleteDialogOpen(false)
       }

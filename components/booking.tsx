@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { getServices } from "@/actions/services"
-import { getBusinessRules, getBusinessHours } from "@/actions/business"
+import { getBusinessHours } from "@/actions/business"
 import { getTeam } from "@/actions/team"
 import { getAvailableTimeSlots, createAppointment } from "@/actions/appointments"
 import { toast } from "sonner"
@@ -161,7 +161,7 @@ function Booking() {
       } else {
         toast.error(result.error || "Error al crear el turno")
       }
-    } catch (error) {
+    } catch {
       toast.error("Error inesperado al crear el turno")
     } finally {
       setIsSubmitting(false)

@@ -5,6 +5,7 @@ import { CalendarIcon, CheckCircleIcon, ClockIcon, MapIcon, MapPinIcon, XCircleI
 import { Button } from "@/components/ui/button";
 import { confirmAppointment } from "@/actions/appointments";
 import dayjs from "dayjs";
+import Link from "next/link";
 import 'dayjs/locale/es';
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
@@ -61,7 +62,7 @@ export default async function Page({ searchParams }: ConfirmationPageProps) {
                 No se proporcionó un token de confirmación válido. Por favor, verifica el enlace que recibiste por email.
               </p>
               <Button className="mt-6" asChild>
-                <a href="/">Volver al inicio</a>
+                <Link href="/">Volver al inicio</Link>
               </Button>
             </div>
           </div>
@@ -92,7 +93,7 @@ export default async function Page({ searchParams }: ConfirmationPageProps) {
                 {result.error || "Ocurrió un error al confirmar tu reserva. Por favor, contacta al negocio."}
               </p>
               <Button className="mt-6" asChild>
-                <a href="/">Volver al inicio</a>
+                <Link href="/">Volver al inicio</Link>
               </Button>
             </div>
           </div>

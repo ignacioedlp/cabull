@@ -10,15 +10,15 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MailIcon, LoaderIcon, AlertCircleIcon } from "lucide-react"
 import Image from "next/image"
 
-export default function AdminLoginPage() {
-  const router = useRouter()
+// Componente interno que usa useSearchParams
+function LoginForm() {
   const searchParams = useSearchParams()
   
   // Estados del formulario
@@ -72,6 +72,99 @@ export default function AdminLoginPage() {
   }
 
   return (
+    <>
+      {/* Formulario de login */}
+      {!success ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Campo de email */}
+          <div className="space-y-2">
+            <label
+              htmlFor="email"
+              className="text-xs font-bold tracking-wider uppercase text-foreground"
+            >
+              Email
+            </label>
+            <div className="relative">
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+                className="h-12 pl-10 pr-4 text-base"
+                autoComplete="email"
+              />
+              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Mensaje de error */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              <AlertCircleIcon className="size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Botón de envío */}
+          <Button
+            type="submit"
+            disabled={isLoading || !email.trim()}
+            className="w-full h-12 text-base font-medium"
+          >
+            {isLoading ? (
+              <>
+                <LoaderIcon className="size-4 animate-spin mr-2" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <MailIcon className="size-4 mr-2" />
+                Enviar enlace de acceso
+              </>
+            )}
+          </Button>
+        </form>
+      ) : (
+        // Mensaje de éxito
+        <div className="space-y-6 text-center">
+          <div className="p-6 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex justify-center mb-4">
+              <div className="size-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <MailIcon className="size-8 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              ¡Email enviado!
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Revisá tu bandeja de entrada en <strong>{email}</strong> y hacé click en el enlace para acceder.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              El enlace expira en 15 minutos y solo puede usarse una vez.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSuccess(false)
+              setEmail("")
+            }}
+            className="w-full"
+          >
+            Enviar a otro email
+          </Button>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Componente principal que envuelve LoginForm en Suspense
+export default function AdminLoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo y título */}
@@ -95,91 +188,17 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        {/* Formulario de login */}
-        {!success ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Campo de email */}
+        {/* Formulario envuelto en Suspense */}
+        <Suspense fallback={
+          <div className="space-y-6">
             <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-xs font-bold tracking-wider uppercase text-foreground"
-              >
-                Email
-              </label>
-              <div className="relative">
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="h-12 pl-10 pr-4 text-base"
-                  autoComplete="email"
-                />
-                <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              </div>
+              <div className="h-12 bg-muted animate-pulse rounded-lg" />
             </div>
-
-            {/* Mensaje de error */}
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                <AlertCircleIcon className="size-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Botón de envío */}
-            <Button
-              type="submit"
-              disabled={isLoading || !email.trim()}
-              className="w-full h-12 text-base font-medium"
-            >
-              {isLoading ? (
-                <>
-                  <LoaderIcon className="size-4 animate-spin mr-2" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <MailIcon className="size-4 mr-2" />
-                  Enviar enlace de acceso
-                </>
-              )}
-            </Button>
-          </form>
-        ) : (
-          // Mensaje de éxito
-          <div className="space-y-6 text-center">
-            <div className="p-6 rounded-lg bg-primary/10 border border-primary/20">
-              <div className="flex justify-center mb-4">
-                <div className="size-16 rounded-full bg-primary/20 flex items-center justify-center">
-                  <MailIcon className="size-8 text-primary" />
-                </div>
-              </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                ¡Email enviado!
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Revisá tu bandeja de entrada en <strong>{email}</strong> y hacé click en el enlace para acceder.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                El enlace expira en 15 minutos y solo puede usarse una vez.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSuccess(false)
-                setEmail("")
-              }}
-              className="w-full"
-            >
-              Enviar a otro email
-            </Button>
+            <div className="h-12 bg-muted animate-pulse rounded-lg" />
           </div>
-        )}
+        }>
+          <LoginForm />
+        </Suspense>
 
         {/* Información adicional */}
         <div className="text-center">
