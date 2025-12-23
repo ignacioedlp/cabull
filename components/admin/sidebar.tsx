@@ -1,4 +1,4 @@
-"use client"
+"use client"  
 
 import { Button } from '@/components/ui/button'
 import { CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, LogOutIcon, HomeIcon } from 'lucide-react'
@@ -8,7 +8,7 @@ import { logout } from '@/actions/auth'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 'settings' }) {
+function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 'settings' | '' }) {
   const { isOpen, close } = useSidebar()
   const router = useRouter()
 
