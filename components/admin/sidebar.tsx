@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
-import { CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, LogOutIcon } from 'lucide-react'
+import { CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, LogOutIcon, HomeIcon } from 'lucide-react'
 import { ModeToggle } from '../mode-toggle'
 import { useSidebar } from '@/context/sidebar-context'
 import { logout } from '@/actions/auth'
@@ -31,6 +31,11 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
   }
 
   const menuItems = [
+    {
+      icon: HomeIcon,
+      label: 'Panel de Control',
+      href: '/admin'
+    },
     {
       icon: CalendarIcon,
       label: 'Itinerario Diario',
