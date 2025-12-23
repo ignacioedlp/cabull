@@ -50,7 +50,7 @@ function AnalyticsActions({ month, year }: { month: string, year: string }) {
     params.set('year', newYear || year)
 
     // Redirigir con los nuevos parámetros
-    router.push(`/analytics?${params.toString()}`)
+    router.push(`/admin/analytics?${params.toString()}`)
   }
 
   // Handler para cuando cambia el mes

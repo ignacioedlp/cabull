@@ -26,7 +26,7 @@ export default function BookingsDayPicker({ day }: BookingsDayPickerProps) {
   // Usa router.push para navegar a la nueva URL con el parámetro de fecha
   const handleDateChange = (date: Dayjs) => {
     // Formatear la fecha como YYYY-MM-DD y actualizar la URL
-    router.push(`/bookings?day=${date.format('YYYY-MM-DD')}`)
+    router.push(`/admin/bookings?day=${date.format('YYYY-MM-DD')}`)
   }
 
   return (

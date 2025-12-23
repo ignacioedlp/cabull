@@ -35,16 +35,16 @@ enum AppointmentStatus {
  */
 
 model Service {
-  id              String  @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
   description     String?
-  durationMinutes Int     @default(30) @map("duration_minutes") // Ej: Corte 30, Corte+Barba 45
-  basePrice       Int?    @map("base_price") // en ARS (opcional)
-  active          Boolean @default(true)
+  durationMinutes Int      @default(30) @map("duration_minutes") // Ej: Corte 30, Corte+Barba 45
+  basePrice       Int?     @map("base_price") // en ARS (opcional)
+  active          Boolean  @default(true)
   features        String[] @map("features")
 
   appointments Appointment[]
-  users     User[]
+  users        User[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -68,11 +68,12 @@ model BusinessHours {
 }
 
 model BusinessRules {
-  id String @id @default(cuid())
-  reservationWindow Int @map("reservation_window")
-  reservationInterval Int @map("reservation_interval")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  reservationWindow   Int      @map("reservation_window")
+  reservationInterval Int      @map("reservation_interval")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
   @@map("business_rules")
 }
 
@@ -143,6 +144,8 @@ model AdminUser {
 
   // Relaciones
   appointments Appointment[]
+  sessions     Session[] // Sesiones de autenticación
+  accounts     Account[] // Cuentas vinculadas (si usas OAuth en el futuro)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -153,10 +156,8 @@ model AdminUser {
 
 /**
  * =========================
- * GENERIC AUTH TABLES (para Better Auth / Sessions)
- * - Estas tablas son un “estándar” estilo NextAuth/BetterAuth.
- * - Si tu Better Auth adapter ya trae su propio schema,
- * reemplazá esta sección por el requerido por el adapter.
+ * GENERIC AUTH TABLES (para Magic Link / Sessions)
+ * - Estas tablas son para el sistema de autenticación con magic links
  * =========================
  */
 
@@ -181,6 +182,7 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
   @@map("users")
 }
 
@@ -205,4 +207,53 @@ model RateLimitAttempt {
   @@index([ipAddress, createdAt])
   @@index([expiresAt]) // Para limpieza eficiente de registros expirados
   @@map("rate_limit_attempts")
+}
+
+/**
+ * =========================
+ * SESSION TABLES
+ * - Tablas para el sistema de autenticación con magic links
+ * =========================
+ */
+
+// Sesiones de autenticación
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  // Relación con AdminUser
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Cuentas vinculadas (para OAuth si lo usas en el futuro)
+model Account {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  accountId    String    @map("account_id")
+  providerId   String    @map("provider_id")
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  expiresAt    DateTime? @map("expires_at")
+  password     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relación con AdminUser
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
 }

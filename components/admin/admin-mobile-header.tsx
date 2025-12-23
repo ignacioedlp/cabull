@@ -2,6 +2,7 @@
 
 import { MenuIcon } from 'lucide-react'
 import { useSidebar } from '@/context/sidebar-context'
+import Image from 'next/image'
 
 /**
  * AdminMobileHeader Component
@@ -20,18 +21,11 @@ export default function AdminMobileHeader() {
     <header className="lg:hidden flex items-center justify-between p-4 dark:bg-dark-card border-b-2 border-muted">
       {/* Logo y nombre de la barbería */}
       <div className="flex items-center gap-3">
-        <div 
-          className="bg-center bg-no-repeat bg-cover rounded-full size-8" 
-          data-alt="Barbershop logo small" 
-          style={{
-            backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCfnJIhJetPsElvrVhdQ9ni3D7i7dU-6BjSMpvLiIOK5XewoCq6ZT0WUZYh42dWv0FnePXb2Nlt7BEo3JfcZ6rJKFkqKg9wAUWvUGvofwFkSEBDHAGf9bPpK5U31ocleMHOk1zOqOwzmq72q3BwRCZZxdZnZMbzo5nk2C3DXx70SZImoymYf1wh2kkhwJzh_05KKv7QFfO1lFK7-rbA-5dtCpUvFxhRRJAiu6TxxZ8gKbkrB8bvvCWGOEBSq9zY9YWcLjzGw_uzH4fL")'
-          }}
-        />
-        <span className="font-bold text-lg">CABULL</span>
+        <Image src="/logo.svg" alt="logo" width={100} height={100} className="dark:invert" />
       </div>
-      
+
       {/* Botón de menú para abrir/cerrar el sidebar en móvil */}
-      <button 
+      <button
         onClick={open}
         className="text-foreground p-2 hover:bg-muted rounded-lg transition-colors"
         aria-label="Abrir menú"

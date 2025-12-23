@@ -89,9 +89,6 @@ async function main() {
       active: true,
     },
   })
-
-  console.log('Seeds creados exitosamente:')
-  console.log({ owner, barber, businessHours, service1, service2 })
 }
 
 main()

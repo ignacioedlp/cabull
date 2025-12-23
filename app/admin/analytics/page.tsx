@@ -41,8 +41,6 @@ async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
 
   const { success, data } = await getAnalytics(monthParam, yearParam)
 
-  console.log(data)
-
   // Si no hay datos, mostrar un mensaje de error o datos por defecto
   if (!success || !data) {
     return (

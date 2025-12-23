@@ -74,15 +74,10 @@ export interface AnalyticsData {
 
 export const getAnalytics = async (month: string, year: string) => {
   try {
-    console.log("month", month)
-    console.log("year", year)
     // Convertir mes y año a números
     // month viene como string "01", "02", etc.
     const monthNum = parseInt(month, 10)
     const yearNum = parseInt(year, 10)
-
-    console.log("monthNum", monthNum)
-    console.log("yearNum", yearNum)
 
     // Validar que los valores sean válidos
     if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
