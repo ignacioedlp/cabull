@@ -1,62 +1,65 @@
-"use client"
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { CalendarIcon, UsersIcon, BarChartIcon, SettingsIcon, LogOutIcon, HomeIcon } from 'lucide-react'
-import { ModeToggle } from '../mode-toggle'
-import { useSidebar } from '@/context/sidebar-context'
-import { logout } from '@/actions/auth'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { Button } from "@/components/ui/button";
+import {
+  CalendarIcon,
+  UsersIcon,
+  BarChartIcon,
+  SettingsIcon,
+  LogOutIcon,
+  HomeIcon,
+} from "lucide-react";
+import { ModeToggle } from "../mode-toggle";
+import { useSidebar } from "@/context/sidebar-context";
+import { logout } from "@/actions/auth";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
-function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 'settings' }) {
-  const { isOpen, close } = useSidebar()
-  const router = useRouter()
+function Sidebar({
+  active,
+}: {
+  active: "bookings" | "clients" | "analytics" | "settings";
+}) {
+  const { isOpen, close } = useSidebar();
+  const router = useRouter();
 
-  // Función para cerrar sesión usando server action
   const handleLogout = async () => {
     try {
-      const result = await logout()
-      if (result.success) {
-        // Redirigir a la página de login después de cerrar sesión
-        router.push('/admin/login')
-      } else {
-        // Aún así redirigir a login si hubo un error
-        router.push('/admin/login')
-      }
+      await logout();
     } catch (error) {
-      console.error('Error al cerrar sesión:', error)
-      // Aún así redirigir a login
-      router.push('/admin/login')
+      console.error("Error al cerrar sesión:", error);
+    } finally {
+      router.push("/login");
     }
-  }
+  };
 
   const menuItems = [
     {
       icon: HomeIcon,
-      label: 'Panel de Control',
-      href: '/admin'
+      label: "Panel de Control",
+      href: "/admin",
     },
     {
       icon: CalendarIcon,
-      label: 'Itinerario Diario',
-      href: '/admin/bookings'
+      label: "Itinerario Diario",
+      href: "/admin/bookings",
     },
     {
       icon: UsersIcon,
-      label: 'Clientes',
-      href: '/admin/clients'
+      label: "Clientes",
+      href: "/admin/clients",
     },
     {
       icon: BarChartIcon,
-      label: 'Rendimiento',
-      href: '/admin/analytics'
+      label: "Rendimiento",
+      href: "/admin/analytics",
     },
     {
       icon: SettingsIcon,
-      label: 'Configuraciones',
-      href: '/admin/settings'
-    }
-  ]
+      label: "Configuraciones",
+      href: "/admin/settings",
+    },
+  ];
 
   return (
     <>
@@ -70,7 +73,8 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
       )}
 
       {/* Sidebar */}
-      <aside className={`
+      <aside
+        className={`
         fixed lg:static
         top-0 left-0
         h-full w-72
@@ -78,30 +82,37 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
         flex flex-col justify-between
         z-50
         transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
-      `}>
+      `}
+      >
         <div className="p-6 flex flex-col gap-8">
           {/* Header del sidebar con botón de cerrar en móviles */}
           <div className="flex gap-4 items-center justify-between">
             <div className="flex gap-4 items-center w-full justify-center">
-              <Image src="/logo.svg" alt="logo" width={180} height={180} className="dark:invert" />
+              <Image
+                src="/logo.svg"
+                alt="logo"
+                width={180}
+                height={180}
+                className="dark:invert"
+              />
             </div>
           </div>
           <nav className="flex flex-col gap-2">
-
             {menuItems.map((item) => (
               <a
                 key={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors group ${active === item.href.split('/')[2] ? 'bg-muted' : ''}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors group ${active === item.href.split("/")[2] ? "bg-muted" : ""}`}
                 href={item.href}
                 onClick={close} // Cerrar el sidebar al hacer clic en un enlace en móviles
               >
                 <item.icon className="size-4" />
-                <span className="text-muted-foreground group-hover:text-primary text-sm font-medium">{item.label}</span>
+                <span className="text-muted-foreground group-hover:text-primary text-sm font-medium">
+                  {item.label}
+                </span>
               </a>
             ))}
-
           </nav>
         </div>
         <div className="p-6 border-t border-border flex gap-4 items-center justify-between">
@@ -117,7 +128,7 @@ function Sidebar({ active }: { active: 'bookings' | 'clients' | 'analytics' | 's
         </div>
       </aside>
     </>
-  )
+  );
 }
 
-export default Sidebar
+export default Sidebar;

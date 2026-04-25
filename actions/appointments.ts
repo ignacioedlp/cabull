@@ -167,6 +167,7 @@ export const createAppointment = async (data: {
   startAt: string | Date // Fecha y hora del turno
   barberId: string
   status?: AppointmentStatus | null
+  isAuthenticated?: boolean
 }) => {
   try {
     // ============================================
@@ -250,41 +251,86 @@ export const createAppointment = async (data: {
     }
 
     // Validar que el barbero existe y está activo
-    const barber = await prisma.adminUser.findUnique({
+    const barber = await prisma.user.findUnique({
       where: { id: data.barberId },
     })
 
-    if (!barber || !barber.active) {
+    if (!barber || !barber.active || barber.role !== "BARBER") {
       return { success: false, error: "El barbero no existe o no está disponible", appointment: null }
     }
 
-    const confirmationToken = crypto.randomUUID()
-    const confirmationTokenHash = crypto.createHash('sha256').update(confirmationToken).digest('hex')
-    const confirmationExpiresAt = dayjs().add(1, 'hour').toDate()
+    // Determinar status y datos de confirmación
+    const isConfirmedStatus = data.isAuthenticated || data.status === AppointmentStatus.CONFIRMED
+    let customerId: string | undefined
+    let confirmationTokenHash: string | null = null
+    let confirmationExpiresAt: Date | null = null
+
+    if (data.isAuthenticated) {
+      // Para usuarios autenticados con Google, buscar/crear el User y vincularlo
+      const user = await prisma.user.findUnique({
+        where: { email: data.customerEmail },
+      })
+      if (user) {
+        customerId = user.id
+      }
+    } else {
+      // Para usuarios no autenticados, generar token de confirmación
+      const confirmationToken = crypto.randomUUID()
+      confirmationTokenHash = crypto.createHash('sha256').update(confirmationToken).digest('hex')
+      confirmationExpiresAt = dayjs().add(1, 'hour').toDate()
+    }
 
     // Crear el appointment
     const appointment = await prisma.appointment.create({
       data: {
         serviceId: data.serviceId,
         customerEmail: data.customerEmail,
+        customerId: customerId,
         startAt: data.startAt,
         barberId: data.barberId,
-        status: data.status || AppointmentStatus.PENDING_CONFIRMATION,
+        status: data.status || (data.isAuthenticated ? AppointmentStatus.CONFIRMED : AppointmentStatus.PENDING_CONFIRMATION),
         confirmationTokenHash: confirmationTokenHash,
         confirmationExpiresAt: confirmationExpiresAt,
       },
+      include: {
+        service: true,
+        barber: true,
+      },
     })
 
-    if (data.status === AppointmentStatus.CONFIRMED) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
+    // Enviar email de recibo o confirmación
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
+    // Obtener nombre del cliente
+    const customerName = customerId
+      ? (await prisma.user.findUnique({ where: { id: customerId }, select: { name: true } }))?.name
+      : null;
+
+    if (data.isAuthenticated || data.status === AppointmentStatus.CONFIRMED) {
+      // Email de recibo para usuarios autenticados
+      await resend.emails.send({
+        from: `Cabull <no-reply@${process.env.RESEND_FROM_EMAIL}>`,
+        to: [data.customerEmail],
+        subject: "✂️ Tu turno está confirmado en Cabull",
+        react: ConfirmAppointmentEmail({
+          customerName: customerName || undefined,
+          date: dayjs(appointment.startAt).format('dddd D [de] MMMM'),
+          time: dayjs(appointment.startAt).format('HH:mm'),
+          service: service?.name || "",
+          barber: barber?.name || "",
+          confirmUrl: "",
+          expiresText: "Tu turno está confirmado.",
+        }) as React.ReactElement,
+      });
+    } else {
+      // Email con link de confirmación para usuarios no autenticados
       await resend.emails.send({
         from: `Cabull <no-reply@${process.env.RESEND_FROM_EMAIL}>`,
         to: [data.customerEmail],
         subject: "✂️ Confirmá tu turno en Cabull",
         react: ConfirmAppointmentEmail({
-          customerName: appointment.customerEmail,
-          date: dayjs(appointment.startAt).format('DD/MM/YYYY'),
+          customerName: customerName || undefined,
+          date: dayjs(appointment.startAt).format('dddd D [de] MMMM'),
           time: dayjs(appointment.startAt).format('HH:mm'),
           service: service?.name || "",
           barber: barber?.name || "",

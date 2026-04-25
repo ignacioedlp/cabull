@@ -2,10 +2,16 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { MenuIcon, XIcon } from "lucide-react"
+import { MenuIcon, XIcon, LogOutIcon, LayoutDashboardIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import Image from "next/image"
+import { useSession } from "@/lib/auth-client"
+import { logout, getCurrentUser } from "@/actions/auth"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { UserRole } from "@/lib/generated/prisma/enums"
+import { User } from "@/lib/generated/prisma/client"
 
 // Definimos el tipo para los items del menú
 interface NavItem {
@@ -35,6 +41,19 @@ export function Navbar({
   onButtonClick,
   className,
 }: NavbarProps) {
+  const { data: session, isPending } = useSession()
+  const router = useRouter()
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null)
+
+  // Cargar datos del usuario actual (con role)
+  React.useEffect(() => {
+    if (session?.user?.id) {
+      getCurrentUser().then(setCurrentUser)
+    } else {
+      setCurrentUser(null)
+    }
+  }, [session?.user?.id])
+
   // Estado para controlar si el menú móvil está abierto o cerrado
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
 
@@ -47,6 +66,21 @@ export function Navbar({
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
   }
+
+  // Función para logout
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast.success("Sesión cerrada correctamente")
+      router.push("/")
+      closeMobileMenu()
+    } catch {
+      toast.error("Error al cerrar sesión")
+    }
+  }
+
+  // Verificar si el usuario es staff, barber u owner
+  const isAdminUser = currentUser && ["STAFF", "BARBER", "OWNER"].includes(currentUser.role as string)
 
   return (
     <header
@@ -76,14 +110,31 @@ export function Navbar({
               ))}
             </nav>
 
-            {/* Botón "Reservar" - visible en desktop */}
-            <div className="hidden md:flex">
-              <Link
-                href={buttonHref}
-                onClick={onButtonClick}
-              >
-                <Button>{buttonLabel}</Button>
-              </Link>
+            {/* Botones de usuario - visible en desktop */}
+            <div className="hidden md:flex items-center gap-3">
+              {session?.user ? (
+                <>
+                  {isAdminUser && (
+                    <Link href="/admin">
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <LayoutDashboardIcon className="size-4" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-2">
+                    <LogOutIcon className="size-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Link
+                  href={buttonHref}
+                  onClick={onButtonClick}
+                >
+                  <Button>{buttonLabel}</Button>
+                </Link>
+              )}
             </div>
 
             {/* Botón del menú hamburguesa - visible solo en móvil */}
@@ -119,17 +170,41 @@ export function Navbar({
                     <Button variant="link">{item.label}</Button>
                   </Link>
                 ))}
-                {/* Botón en el menú móvil */}
-                <div className="pt-2">
-                  <Link
-                    href={buttonHref}
-                    onClick={() => {
-                      closeMobileMenu()
-                      onButtonClick?.()
-                    }}
-                  >
-                    <Button className="w-full">{buttonLabel}</Button>
-                  </Link>
+                {/* Botones en el menú móvil */}
+                <div className="pt-4 space-y-2">
+                  {session?.user ? (
+                    <>
+                      {isAdminUser && (
+                        <Link href="/admin" onClick={closeMobileMenu}>
+                          <Button className="w-full flex items-center justify-center gap-2">
+                            <LayoutDashboardIcon className="size-4" />
+                            Admin
+                          </Button>
+                        </Link>
+                      )}
+                      <Button
+                        variant="destructive"
+                        className="w-full flex items-center justify-center gap-2"
+                        onClick={() => {
+                          closeMobileMenu()
+                          handleLogout()
+                        }}
+                      >
+                        <LogOutIcon className="size-4" />
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <Link
+                      href={buttonHref}
+                      onClick={() => {
+                        closeMobileMenu()
+                        onButtonClick?.()
+                      }}
+                    >
+                      <Button className="w-full">{buttonLabel}</Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

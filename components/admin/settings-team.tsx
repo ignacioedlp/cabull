@@ -32,16 +32,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
-import { UserPlusIcon, EditIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { AdminRole } from "@/lib/generated/prisma/enums"
-import { AdminUser } from "@/lib/generated/prisma/client"
+import { UserPlusIcon, EditIcon, PlusIcon, Trash2Icon, MailIcon } from 'lucide-react'
+import { UserRole } from "@/lib/generated/prisma/enums"
+import { User } from "@/lib/generated/prisma/client"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { createTeamMember, updateTeamMember, deleteTeamMember, updateTeamMemberActive } from "@/actions/team"
+import { updateTeamMember, deleteTeamMember, updateTeamMemberActive, inviteTeamMember } from "@/actions/team"
 
 // Función para obtener el texto del rol
-const getRoleLabel = (role: AdminRole): string => {
+const getRoleLabel = (role: UserRole): string => {
   switch (role) {
     case "OWNER":
       return "Propietario"
@@ -62,10 +62,10 @@ const TeamCard = ({
   onToggleActive,
   isPending
 }: {
-  team: AdminUser
-  onEdit: (member: AdminUser) => void
-  onDelete: (member: AdminUser) => void
-  onToggleActive: (member: AdminUser) => void
+  team: User
+  onEdit: (member: User) => void
+  onDelete: (member: User) => void
+  onToggleActive: (member: User) => void
   isPending: boolean
 }) => {
   return (
@@ -119,109 +119,109 @@ const TeamCard = ({
 }
 
 
-function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
+function SettingsTeam({ team }: { team: User[] | undefined }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Estado para el Sheet y el miembro a editar
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false)
-  const [editingMember, setEditingMember] = React.useState<AdminUser | null>(null)
+  // Sheet para invitar nuevo miembro (solo email)
+  const [isInviteSheetOpen, setIsInviteSheetOpen] = React.useState(false)
+  const [inviteData, setInviteData] = React.useState({
+    email: "",
+    role: "BARBER" as UserRole,
+  })
 
-  // Estado para el diálogo de confirmación de eliminación
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
-  const [memberToDelete, setMemberToDelete] = React.useState<AdminUser | null>(null)
-
-  // Estado del formulario
-  const [formData, setFormData] = React.useState<{
+  // Sheet para editar miembro existente
+  const [isEditSheetOpen, setIsEditSheetOpen] = React.useState(false)
+  const [editingMember, setEditingMember] = React.useState<User | null>(null)
+  const [editData, setEditData] = React.useState<{
     name: string
-    email: string
-    role: AdminRole
+    role: UserRole
     enabled: boolean
     color: string
   }>({
     name: "",
-    email: "",
     role: "BARBER",
     enabled: true,
     color: "#000000",
   })
 
-  // Función para abrir el Sheet en modo crear
-  const handleCreate = () => {
-    setEditingMember(null)
-    setFormData({
-      name: "",
-      email: "",
-      role: "BARBER",
-      enabled: true,
-      color: "#000000",
-    })
-    setIsSheetOpen(true)
+  // Diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [memberToDelete, setMemberToDelete] = React.useState<User | null>(null)
+
+  // Función para abrir el Sheet de invitar
+  const handleOpenInvite = () => {
+    setInviteData({ email: "", role: "BARBER" })
+    setIsInviteSheetOpen(true)
   }
 
-  // Función para abrir el Sheet en modo editar
-  const handleEdit = (member: AdminUser) => {
+  // Función para abrir el Sheet de editar
+  const handleEdit = (member: User) => {
     setEditingMember(member)
-    setFormData({
+    setEditData({
       name: member.name || "",
-      email: member.email,
       role: member.role,
       enabled: member.active,
       color: member.color || "#000000",
     })
-    setIsSheetOpen(true)
+    setIsEditSheetOpen(true)
   }
 
-  // Función para manejar el envío del formulario
-  const handleSubmit = (e: React.FormEvent) => {
+  // Manejar envío de invitación
+  const handleSubmitInvite = (e: React.FormEvent) => {
     e.preventDefault()
 
     startTransition(async () => {
       try {
-        // Preparar los datos del miembro del equipo
-        const teamMemberData = {
-          name: formData.name || null,
-          email: formData.email,
-          role: formData.role,
-          services: [], // Por ahora vacío, se puede implementar después
-          enabled: formData.enabled,
-          color: formData.color || null,
-        }
-
-        let result
-        if (editingMember) {
-          // Actualizar miembro existente
-          result = await updateTeamMember({
-            id: editingMember.id,
-            ...teamMemberData,
-          })
-        } else {
-          // Crear nuevo miembro
-          result = await createTeamMember(teamMemberData)
-        }
+        const result = await inviteTeamMember(inviteData.email, inviteData.role)
 
         if (result.success) {
-          // Mostrar mensaje de éxito y cerrar el Sheet
-          toast.success(
-            editingMember
-              ? "Miembro del equipo actualizado correctamente."
-              : "Miembro del equipo creado correctamente."
-          )
-          setIsSheetOpen(false)
+          toast.success("Invitación enviada correctamente al email.")
+          setIsInviteSheetOpen(false)
+          setInviteData({ email: "", role: "BARBER" })
           router.refresh()
         } else {
-          // Mostrar mensaje de error
-          toast.error(result.error || "Ocurrió un error al guardar el miembro del equipo.")
+          toast.error(result.error || "Ocurrió un error al enviar la invitación.")
         }
       } catch {
-        // Error inesperado
-        toast.error("Error inesperado al guardar el miembro del equipo.")
+        toast.error("Error inesperado al enviar la invitación.")
+      }
+    })
+  }
+
+  // Manejar actualización de miembro
+  const handleSubmitEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!editingMember) return
+
+    startTransition(async () => {
+      try {
+        const result = await updateTeamMember({
+          id: editingMember.id,
+          name: editData.name || null,
+          email: editingMember.email, // Email no se edita
+          role: editData.role,
+          services: [],
+          enabled: editData.enabled,
+          color: editData.color || null,
+        })
+
+        if (result.success) {
+          toast.success("Miembro del equipo actualizado correctamente.")
+          setIsEditSheetOpen(false)
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al actualizar el miembro del equipo.")
+        }
+      } catch {
+        toast.error("Error inesperado al actualizar el miembro del equipo.")
       }
     })
   }
 
   // Función para abrir el diálogo de confirmación de eliminación
-  const handleDelete = (member: AdminUser) => {
+  const handleDelete = (member: User) => {
     setMemberToDelete(member)
     setDeleteDialogOpen(true)
   }
@@ -254,7 +254,7 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
   }
 
   // Función para activar/desactivar miembro
-  const handleToggleActive = (member: AdminUser) => {
+  const handleToggleActive = (member: User) => {
     startTransition(async () => {
       try {
         const result = await updateTeamMemberActive(member.id, !member.active)
@@ -281,15 +281,15 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
         <CardHeader className="flex justify-between items-end">
           <div>
             <h3 className="text-text-main text-lg font-bold">Gestión de Equipo</h3>
-            <p className="text-text-secondary text-sm">Gestiona a tus personal y asigna servicios.</p>
+            <p className="text-text-secondary text-sm">Gestiona a tu personal y asigna servicios.</p>
           </div>
           <Button
             className="flex items-center gap-2"
             variant="outline"
-            onClick={handleCreate}
+            onClick={handleOpenInvite}
           >
-            <UserPlusIcon className="size-4" />
-            Agregar Personal
+            <MailIcon className="size-4" />
+            Invitar al Equipo
           </Button>
         </CardHeader>
         <CardContent>
@@ -304,14 +304,14 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
                 isPending={isPending}
               />
             ))}
-            <Card className="border border-dashed border-muted cursor-pointer min-h-[220px] flex flex-col items-center justify-center text-center" onClick={handleCreate}>
+            <Card className="border border-dashed border-muted cursor-pointer min-h-[220px] flex flex-col items-center justify-center text-center" onClick={handleOpenInvite}>
               <CardContent className="flex flex-col items-center justify-center text-center transition-colors">
                 <div className="size-12 rounded-full border border-border-light flex items-center justify-center text-text-secondary mb-3 shadow-sm">
-                  <PlusIcon className="size-4" />
+                  <MailIcon className="size-4" />
                 </div>
-                <h4 className="text-text-main font-bold text-base">Unirse al Equipo</h4>
+                <h4 className="text-text-main font-bold text-base">Invitar al Equipo</h4>
                 <p className="text-text-secondary text-xs mt-1 max-w-[150px]">
-                  Invita a un nuevo personal via email para configurar su cuenta.
+                  Envía una invitación por email a un nuevo miembro.
                 </p>
               </CardContent>
             </Card>
@@ -320,41 +320,25 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
         <CardFooter></CardFooter>
       </Card>
 
-      {/* Sheet para crear/editar miembro del equipo */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      {/* Sheet para invitar nuevo miembro (solo email) */}
+      <Sheet open={isInviteSheetOpen} onOpenChange={setIsInviteSheetOpen}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              {editingMember ? "Editar Miembro del Equipo" : "Nuevo Miembro del Equipo"}
-            </SheetTitle>
+            <SheetTitle>Invitar al Equipo</SheetTitle>
             <SheetDescription>
-              {editingMember
-                ? "Modifica la información del miembro del equipo."
-                : "Completa los datos para agregar un nuevo miembro al equipo."}
+              Envía una invitación por email a un nuevo miembro para que se unja a tu equipo.
             </SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6 py-4 px-4">
-            {/* Nombre */}
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nombre Completo *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ej: Marco Rossi"
-                required
-              />
-            </div>
-
+          <form onSubmit={handleSubmitInvite} className="flex flex-col gap-6 py-4 px-4">
             {/* Email */}
             <div className="grid gap-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="invite-email">Email del Invitado *</Label>
               <Input
-                id="email"
+                id="invite-email"
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={inviteData.email}
+                onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                 placeholder="Ej: marco.rossi@example.com"
                 required
               />
@@ -362,14 +346,83 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
 
             {/* Rol */}
             <div className="grid gap-2">
-              <Label htmlFor="role">Rol *</Label>
+              <Label htmlFor="invite-role">Rol *</Label>
               <Select
-                value={formData.role}
-                onValueChange={(value: AdminRole) => setFormData({ ...formData, role: value })}
+                value={inviteData.role}
+                onValueChange={(value: UserRole) => setInviteData({ ...inviteData, role: value })}
               >
-                <SelectTrigger id="role">
+                <SelectTrigger id="invite-role">
                   <SelectValue>
-                    {getRoleLabel(formData.role)}
+                    {getRoleLabel(inviteData.role)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="STAFF">Personal</SelectItem>
+                  <SelectItem value="BARBER">Peluquero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <SheetFooter>
+              <SheetClose asChild>
+                <Button type="button" variant="outline">
+                  Cancelar
+                </Button>
+              </SheetClose>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Enviando..." : "Enviar Invitación"}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet para editar miembro existente */}
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar Miembro del Equipo</SheetTitle>
+            <SheetDescription>
+              Modifica la información del miembro del equipo.
+            </SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleSubmitEdit} className="flex flex-col gap-6 py-4 px-4">
+            {/* Email (readonly) */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editingMember?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">El email no puede ser editado.</p>
+            </div>
+
+            {/* Nombre */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Nombre Completo *</Label>
+              <Input
+                id="edit-name"
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                placeholder="Ej: Marco Rossi"
+                required
+              />
+            </div>
+
+            {/* Rol */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role">Rol *</Label>
+              <Select
+                value={editData.role}
+                onValueChange={(value: UserRole) => setEditData({ ...editData, role: value })}
+              >
+                <SelectTrigger id="edit-role">
+                  <SelectValue>
+                    {getRoleLabel(editData.role)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -382,19 +435,19 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
 
             {/* Color */}
             <div className="grid gap-2">
-              <Label htmlFor="color">Color (para el calendario)</Label>
+              <Label htmlFor="edit-color">Color (para el calendario)</Label>
               <div className="flex items-center gap-3">
                 <Input
-                  id="color"
+                  id="edit-color"
                   type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  value={editData.color}
+                  onChange={(e) => setEditData({ ...editData, color: e.target.value })}
                   className="h-10 w-20 cursor-pointer"
                 />
                 <Input
                   type="text"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  value={editData.color}
+                  onChange={(e) => setEditData({ ...editData, color: e.target.value })}
                   placeholder="#000000"
                   className="flex-1"
                 />
@@ -404,15 +457,15 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
             {/* Estado activo */}
             <div className="flex items-center justify-between">
               <div className="grid gap-1.5">
-                <Label htmlFor="enabled">Miembro Activo</Label>
+                <Label htmlFor="edit-enabled">Miembro Activo</Label>
                 <p className="text-xs text-muted-foreground">
                   Los miembros inactivos no aparecerán en el menú de reservas.
                 </p>
               </div>
               <Switch
-                id="enabled"
-                checked={formData.enabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
+                id="edit-enabled"
+                checked={editData.enabled}
+                onCheckedChange={(checked) => setEditData({ ...editData, enabled: checked })}
               />
             </div>
 
@@ -423,13 +476,7 @@ function SettingsTeam({ team }: { team: AdminUser[] | undefined }) {
                 </Button>
               </SheetClose>
               <Button type="submit" disabled={isPending}>
-                {isPending
-                  ? editingMember
-                    ? "Guardando..."
-                    : "Creando..."
-                  : editingMember
-                    ? "Guardar Cambios"
-                    : "Crear Miembro"}
+                {isPending ? "Guardando..." : "Guardar Cambios"}
               </Button>
             </SheetFooter>
           </form>

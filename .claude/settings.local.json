@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const ba = require\\('better-auth'\\); console.log\\(Object.keys\\(ba.betterAuth\\({database: null, providers: {}}\\).constructor.prototype\\)\\)\")",
+      "Bash(node -e \"const {betterAuth} = require\\('better-auth'\\); const a = betterAuth\\({database: {}, baseURL: 'http://localhost'}\\); console.log\\(typeof a, Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(a\\)\\).slice\\(0, 20\\)\\)\")",
+      "Bash(xargs -I {} sh -c 'ls {}/index.* 2>/dev/null')",
+      "Bash(kill -9 13728)",
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:3000/api/auth/session -H \"Cookie: better-auth.session_token=test\")",
+      "Bash(npx prisma *)",
+      "Bash(curl -s http://localhost:3000/api/auth/session)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs kill *)",
+      "Bash(curl -s http://localhost:3001/api/auth/session)"
+    ]
+  }
+}

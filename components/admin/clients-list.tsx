@@ -43,7 +43,7 @@ import { getTeam } from '@/actions/team'
 import { getBusinessHours } from '@/actions/business'
 import { getAvailableTimeSlots, createAppointment } from '@/actions/appointments'
 import { toast } from 'sonner'
-import { AdminRole, AppointmentStatus } from '@/lib/generated/prisma/enums'
+import { UserRole, AppointmentStatus } from '@/lib/generated/prisma/enums'
 import { cn } from '@/lib/utils'
 
 export type UserType = "VIP" | "REGULAR" | "NEW"
@@ -334,7 +334,7 @@ function ClientsList({ clients: clientsFromDB, isLoading = false }: ClientsListP
       // Cargar barberos activos
       const teamResult = await getTeam()
       if (teamResult.success) {
-        const activeBarbers = teamResult.team.filter(barber => barber.active && barber.role === AdminRole.BARBER)
+        const activeBarbers = teamResult.team.filter(barber => barber.active && barber.role === UserRole.BARBER)
         setBarbers(activeBarbers)
         // Seleccionar el primer barbero por defecto si hay alguno disponible
         if (activeBarbers.length > 0) {

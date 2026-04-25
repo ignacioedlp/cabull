@@ -5,6 +5,7 @@ import { CalendarClockIcon, InfoIcon, ArrowRightIcon, Loader2Icon } from "lucide
 import DayPicker from "./day-picker"
 import dayjs, { Dayjs } from "dayjs"
 import { useState, useEffect } from "react"
+import { useSession } from "@/lib/auth-client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
@@ -13,7 +14,8 @@ import { getBusinessHours } from "@/actions/business"
 import { getTeam } from "@/actions/team"
 import { getAvailableTimeSlots, createAppointment } from "@/actions/appointments"
 import { toast } from "sonner"
-import { AdminRole } from "@/lib/generated/prisma/enums"
+import { UserRole } from "@/lib/generated/prisma/enums"
+import { GoogleSignInButton } from "./google-sign-in-button"
 
 // Función auxiliar para formatear precio en ARS
 function formatPriceARS(price: number | null): string {
@@ -26,6 +28,8 @@ function formatPriceARS(price: number | null): string {
 }
 
 function Booking() {
+  const { data: session, isPending } = useSession()
+
   // Estados del formulario
   const [selectedService, setSelectedService] = useState<string>('')
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs())
@@ -46,6 +50,13 @@ function Booking() {
   const [businessHours, setBusinessHours] = useState<Array<{ weekday: number; startTime: string; endTime: string; isClosed: boolean }>>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
 
+  // Pre-llenar email si hay sesión
+  useEffect(() => {
+    if (session?.user?.email) {
+      setEmail(session.user.email)
+    }
+  }, [session])
+
   // Cargar datos iniciales
   useEffect(() => {
     async function loadInitialData() {
@@ -59,7 +70,7 @@ function Booking() {
       const teamResult = await getTeam()
       if (teamResult.success) {
         // Filtrar solo barberos activos
-        const activeBarbers = teamResult.team.filter(barber => barber.active && barber.role === AdminRole.BARBER)
+        const activeBarbers = teamResult.team.filter(barber => barber.active && barber.role === UserRole.BARBER)
         setBarbers(activeBarbers)
       }
 
@@ -145,14 +156,18 @@ function Booking() {
         customerEmail: email,
         startAt: appointmentDateTime.toDate(),
         barberId: barberId,
+        isAuthenticated: !!session,
       })
 
       if (result.success) {
-        toast.success("¡Turno reservado exitosamente! Revisa tu email para confirmar.")
+        const message = session
+          ? "¡Turno reservado exitosamente!"
+          : "¡Turno reservado exitosamente! Revisa tu email para confirmar."
+        toast.success(message)
         // Limpiar formulario
         setSelectedService('')
         setSelectedHour('')
-        setEmail('')
+        if (!session) setEmail('')
         // Recargar slots para actualizar disponibilidad
         const slotsResult = await getAvailableTimeSlots(selectedDate.toDate())
         if (slotsResult.success) {
@@ -194,9 +209,27 @@ function Booking() {
               <h1 className=" text-3xl md:text-4xl font-black leading-tight">Reserva tu Cita</h1>
               <p className="text-muted-foreground mt-2">Selecciona tu servicio, elige un horario y confirma tu reserva.</p>
             </div>
-            <div className="flex flex-col lg:flex-row gap-8 px-4">
-              <div className="flex-1 bg-background p-6 md:p-8 rounded-xl border border-muted shadow-sm">
-                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+            {isPending ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2Icon className="size-6 animate-spin" />
+              </div>
+            ) : !session?.user ? (
+              <div className="flex flex-col lg:flex-row gap-8 px-4">
+                <div className="flex-1 bg-background p-6 md:p-8 rounded-xl border border-muted shadow-sm flex items-center justify-center min-h-[400px]">
+                  <div className="flex flex-col items-center gap-6 text-center">
+                    <div>
+                      <h3 className="text-lg font-bold mb-2">Necesitas iniciar sesión</h3>
+                      <p className="text-muted-foreground">Usa tu cuenta de Google para reservar un turno</p>
+                    </div>
+                    <GoogleSignInButton />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col lg:flex-row gap-8 px-4">
+                <div className="flex-1 bg-background p-6 md:p-8 rounded-xl border border-muted shadow-sm">
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="service">Selecciona un Servicio</Label>
                     <Select value={selectedService} onValueChange={setSelectedService}>
@@ -220,18 +253,6 @@ function Booking() {
                       disabledDaysOfWeek={getDisabledDaysOfWeek()}
                       day={selectedDate}
                       handleAction={handleDateChange}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      placeholder="you@example.com"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
                     />
                   </div>
                   <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-3">
@@ -303,6 +324,7 @@ function Booking() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>

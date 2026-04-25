@@ -4,9 +4,11 @@ import DayScheduleRow from "./day-schedule-row"
 import { useState, useTransition } from "react";
 import dayjs from "dayjs";
 import 'dayjs/locale/es'
-import { updateBusinessHours } from "@/actions/business";
+import { updateBusinessHours, createDefaultBusinessHours } from "@/actions/business";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Button } from "../ui/button"
+import { PlusIcon } from "lucide-react";
 /**
  * Componente que maneja toda la sección de "Días de Operación"
  * Utiliza un array de configuración para generar dinámicamente las filas de días
@@ -120,6 +122,24 @@ function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
     })
   }
 
+  // Función para crear horarios por defecto (9:00 a 18:00 todos los días)
+  const handleCreateDefaultHours = () => {
+    startTransition(async () => {
+      try {
+        const result = await createDefaultBusinessHours()
+        if (result.success && result.businessHours) {
+          setSchedules(result.businessHours)
+          toast.success("Horarios de negocio creados correctamente.")
+          router.refresh()
+        } else {
+          toast.error(result.error || "Ocurrió un error al crear los horarios de negocio.")
+        }
+      } catch {
+        toast.error("Error inesperado al crear los horarios de negocio.")
+      }
+    })
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Título de la sección */}
@@ -127,25 +147,49 @@ function OperatingDays({ businessHours }: { businessHours: BusinessHours[] }) {
         Días de Operación
       </label>
 
-      {/* Iteramos sobre el array de días y creamos una fila para cada uno */}
-      {schedules.map((schedule) => {
-        return (
-          <DayScheduleRow
-            key={schedule.id}
-            // Usamos dayjs para convertir el número del día a su nombre en español 0 al 6 (domingo al sábado)
-            dayName={dayjs().day(schedule.weekday).locale('es').format('dddd')}
-            toggleId={`toggle-${schedule.id}`}
-            startTime={schedule.startTime}
-            endTime={schedule.endTime}
-            isEnabled={!schedule.isClosed}
-            isDisabled={schedule.isClosed}
-            isPending={isPending}
-            onStartTimeChange={(value) => handleStartTimeChange(schedule.id, value)}
-            onEndTimeChange={(value) => handleEndTimeChange(schedule.id, value)}
-            onToggleChange={(checked) => handleToggleChange(schedule.id, checked)}
-          />
-        )
-      })}
+      {/* Estado vacío - mostrar cuando no hay horarios */}
+      {schedules.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed border-border-light bg-surface-card gap-4">
+          <div className="text-center">
+            <h4 className="text-text-main font-bold text-base mb-2">
+              No hay horarios de operación configurados
+            </h4>
+            <p className="text-text-secondary text-sm mb-4">
+              Establece los días y horarios de funcionamiento de tu negocio. Puedes crear horarios por defecto y luego personalizarlos.
+            </p>
+          </div>
+          <Button
+            onClick={handleCreateDefaultHours}
+            disabled={isPending}
+            className="flex items-center gap-2"
+          >
+            <PlusIcon className="size-4" />
+            {isPending ? "Creando horarios..." : "Crear Horarios por Defecto"}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Iteramos sobre el array de días y creamos una fila para cada uno */}
+          {schedules.map((schedule) => {
+            return (
+              <DayScheduleRow
+                key={schedule.id}
+                // Usamos dayjs para convertir el número del día a su nombre en español 0 al 6 (domingo al sábado)
+                dayName={dayjs().day(schedule.weekday).locale('es').format('dddd')}
+                toggleId={`toggle-${schedule.id}`}
+                startTime={schedule.startTime}
+                endTime={schedule.endTime}
+                isEnabled={!schedule.isClosed}
+                isDisabled={schedule.isClosed}
+                isPending={isPending}
+                onStartTimeChange={(value) => handleStartTimeChange(schedule.id, value)}
+                onEndTimeChange={(value) => handleEndTimeChange(schedule.id, value)}
+                onToggleChange={(checked) => handleToggleChange(schedule.id, checked)}
+              />
+            )
+          })}
+        </>
+      )}
     </div>
   )
 }
